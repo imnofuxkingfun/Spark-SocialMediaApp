@@ -1,72 +1,64 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
+using System.Drawing;
 
 namespace Spark_SocialMediaApp.Models
 {
     public class User : IdentityUser
     {
         [Required]
-        private string? displayName; //email -> 2fa n confidential, username -> unique, display name -> whatever
+        [RegularExpression(@"^[a-zA-Z0-9_]{3,20}$", ErrorMessage = "Username must be 3-20 characters, alphanumeric and underscores only")]
+        private string userName { get; set; }
 
         [Required]
-        private string? profilePicture;
+        [MinLength(1, ErrorMessage = "Display name cannot be null")]
+        private string displayName { get; set; } //email -> 2fa n confidential, username -> unique, display name -> whatever
 
-        [Required]
-        private string? bannerPicture;
 
-        [Phone]
-        private string? phone;
 
-        private List<string>? pronouns;
+        //[Phone]
+        //private string? phone;
+
+        //private List<string>? pronouns;
 
         private DateOnly? joinedAt;
+
 
         private DateOnly? dateOfBirth;
 
 
         //setters and getters
+
+        public override string? UserName { get => base.UserName; set => base.UserName = value; }
+
         public string DisplayName
         {
-            get {
+            get
+            {
                 return displayName;
             }
             set { displayName = value; }
         }
 
-        public string? ProfilePicture
-        {
-            get {
-                return profilePicture;
-            }
-            set { profilePicture = value; }
-        }
+        
 
-        public string? BannerPicture
-        {
-            get
-            {
-                return bannerPicture;
-            }
-            set { bannerPicture = value; }
-        }
+        //public string? Phone
+        //{
+        //    get
+        //    {
+        //        return phone;
+        //    }
+        //    set { phone = value; }
+        //}
 
-        public string? Phone
-        {
-            get
-            {
-                return phone;
-            }
-            set { phone = value; }
-        }
-
-        public List<string>? Pronouns
-        {
-            get
-            {
-                return pronouns;
-            }
-            set { pronouns = value; }
-        }
+        //public List<string>? Pronouns
+        //{
+        //    get
+        //    {
+        //        return pronouns;
+        //    }
+        //    set { pronouns = value; }
+        //}
 
         public DateOnly? JoinedAt
         {
@@ -87,14 +79,31 @@ namespace Spark_SocialMediaApp.Models
 
 
         /// /////////
-        public virtual ICollection<Post>? likedPosts { get; set; }
+        public virtual ICollection<LikedPosts>? LikedPosts { get; set; }
 
-        public virtual ICollection<Post>? savedPosts { get; set; }
+        public virtual ICollection<SavedPosts>? SavedPosts { get; set; }
 
-        //public virtual ICollection<Comments>? Comments { get; set; } 
+        public virtual ICollection<Post>? CreatedPosts { get; set; }
+
+        public virtual ICollection<Comments>? Comments { get; set; }
+
+        public virtual ICollection<UserConnections>? Following { get; set; }
+
+        public virtual ICollection<UserConnections>? FollowedBy { get; set; }
+
+        public virtual ICollection<GroupchatMembers>? Groupchats { get; set; }
+
+        public virtual ICollection<GroupchatMessages>? GroupchatMessages { get; set; }
+
+        public virtual ICollection<UserConnections>? BlockedUsers { get; set; }
+
+        public virtual UserSettings? Settings { get; set; }
+        public virtual UserProfile? Profile { get; set; }
+
 
         //user pforile
         //user settings
 
 
     }
+}

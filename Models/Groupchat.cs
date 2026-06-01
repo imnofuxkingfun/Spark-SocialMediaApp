@@ -5,7 +5,7 @@ namespace Spark_SocialMediaApp.Models
     public class Groupchat
     {
         [Key]
-        private string id;
+        public readonly string Id = Guid.NewGuid().ToString();
 
         [Required]
         private string name;
@@ -13,14 +13,6 @@ namespace Spark_SocialMediaApp.Models
         private DateTime createdAt = DateTime.UtcNow;
 
         //get set
-        public string Id
-        {
-            get
-            {
-                return id;
-            }
-        }
-
         public string Name
         {
             get

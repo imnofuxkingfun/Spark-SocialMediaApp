@@ -2,7 +2,12 @@
   "dependencies": {
     "mssql1": {
       "type": "mssql",
-      "connectionId": "ConnectionStrings:DefaultConnection"
+      "connectionId": "SparkDataBase"
+    },
+    "mssql2": {
+      "type": "mssql",
+      "connectionId": "ConnectionStrings:ApplicationDbContext1",
+      "dynamicId": null
     }
   }
 }

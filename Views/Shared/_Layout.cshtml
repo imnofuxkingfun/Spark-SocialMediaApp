@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Identity
+@inject SignInManager<User> SignInManager
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -8,6 +10,8 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/Spark_SocialMediaApp.styles.css" asp-append-version="true" />
+    <link rel="icon" type="image/x-icon" href="/logo/spark-logo.ico">
+    @RenderSection("Styles", false)
 </head>
 <body>
     <header>
@@ -26,7 +30,8 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
-                    </ul>
+                        
+                        </ul>
                     <partial name="_LoginPartial" />
                 </div>
             </div>

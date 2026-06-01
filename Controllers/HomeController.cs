@@ -16,8 +16,7 @@ namespace Spark_SocialMediaApp.Controllers
 
         public IActionResult Index()
         {
-            var users = _db.Users;
-            ViewBag.Users = users;
+            
             return View();
         }
 

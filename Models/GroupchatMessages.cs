@@ -5,7 +5,7 @@ namespace Spark_SocialMediaApp.Models
     public class GroupchatMessages
     {
         [Key]
-        private string id;
+        public readonly string Id = Guid.NewGuid().ToString();
 
         private DateTime createdAt = DateTime.UtcNow;
 
@@ -13,9 +13,9 @@ namespace Spark_SocialMediaApp.Models
 
         private string? media;
 
-        //get set
+        public string? SenderId { get; set; }
 
-        public string Id { get => id; }
+        //get set
 
         public DateTime CreatedAt
         {
@@ -42,6 +42,6 @@ namespace Spark_SocialMediaApp.Models
         ///
         public virtual Groupchat? Groupchat { get; set; }
 
-        public virtual User? Author { get; set; }
+        public virtual User? Sender { get; set; }
     }
 }

@@ -1,0 +1,33 @@
+﻿@page
+@using Spark_SocialMediaApp.Models
+@model SettingsModel
+@{
+    ViewData["Title"] = "Settings";
+    ViewData["ActivePage"] = ManageNavPages.Settings;
+}
+
+<form id="settingsForm" method="post">
+    <div class="mb-3">
+        <div class="form-check">
+            <input asp-for="Settings.PrivacyPublic" type="checkbox" class="form-check-input" id="PrivacyPublic">
+            <label asp-for="Settings.PrivacyPublic" class="form-check-label">Public Profile</label>
+        </div>
+    </div>
+
+    <h3>Content Filters</h3>
+
+    @foreach (var filter in Model.Settings.ContentFilters)
+    {
+        <div class="mb-3">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="ContentFilters_@filter.Key" name="ContentFilters[@filter.Key]" value="true" @(filter.Value ? "checked" : "")>
+                <input type="hidden" name="ContentFilters[@filter.Key]" value="false">
+
+                <label class="form-check-label" for="ContentFilters_@filter.Key">@filter.Key</label>
+            </div>
+        </div>
+    }
+    <input asp-for="Settings.UserId" type="hidden" value="@Model.Settings.UserId">
+
+    <button type="submit" class="btn btn-primary">Apply</button>
+</form>

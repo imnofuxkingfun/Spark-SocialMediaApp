@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Spark_SocialMediaApp.Data;
@@ -9,13 +11,20 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddDefaultIdentity<User>(options => options.SignIn.RequireConfirmedAccount = true)
+builder.Services.AddDefaultIdentity<Spark_SocialMediaApp.Models.User>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddRazorPages();
+builder.Services.AddControllersWithViews(options =>
+{
+    options.ModelBinderProviders.Insert(0, new DictionaryModelBinderProvider());
+});
+
 
 //daca nu e logat, il trimitem la pagina de prezentare
 builder.Services.ConfigureApplicationCookie(options =>
@@ -24,17 +33,19 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 });
 
-//string googleKeysJson = File.ReadAllText("GoogleKeys.json");
-//var googleKeys = JsonConvert.DeserializeObject<Dictionary<string, string>>(googleKeysJson);
+string googleKeysJson = File.ReadAllText("GoogleKeys.json");
+var googleKeys = JsonConvert.DeserializeObject<Dictionary<string, List<string>>>(googleKeysJson);
 
-//builder.Services.AddAuthentication()
-//   .AddGoogle(options =>
-//   {
-//       options.ClientId = googleKeys["client_id"];
-//       options.ClientSecret = googleKeys["client_secret"];
-//   });
+builder.Services.AddAuthentication()
+   .AddGoogle(options =>
+   {
+       options.ClientId = googleKeys["client_id"][0];
+       options.ClientSecret = googleKeys["client_secret"][0];
+   });
 
 var app = builder.Build();
+
+
 
 //Adaug SeedData !!!
 //using (var scope = app.Services.CreateScope())
@@ -71,3 +82,38 @@ app.MapRazorPages()
    .WithStaticAssets();
 
 app.Run();
+
+public class DictionaryModelBinderProvider : IModelBinderProvider
+{
+    public IModelBinder GetBinder(ModelBinderProviderContext context)
+    {
+        if (context.Metadata.ModelType == typeof(Dictionary<string, bool>))
+        {
+            return new DictionaryModelBinder();
+        }
+        return null;
+    }
+}
+
+public class DictionaryModelBinder : IModelBinder
+{
+    public Task BindModelAsync(ModelBindingContext bindingContext)
+    {
+        if (bindingContext.ModelType != typeof(Dictionary<string, bool>))
+            return Task.CompletedTask;
+
+        var result = new Dictionary<string, bool>();
+        var form = bindingContext.HttpContext.Request.Form;
+        var prefix = bindingContext.ModelName + "[";
+
+        foreach (var key in form.Keys.Where(k => k.StartsWith(prefix)))
+        {
+            var dictKey = key.Substring(prefix.Length).TrimEnd(']');
+            var value = form[key].LastOrDefault() ?? "false";
+            result[dictKey] = value.Equals("true", StringComparison.OrdinalIgnoreCase);
+        }
+
+        bindingContext.Result = ModelBindingResult.Success(result);
+        return Task.CompletedTask;
+    }
+}

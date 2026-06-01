@@ -6,7 +6,7 @@ namespace Spark_SocialMediaApp.Models
     public class Comments
     {
         [Key]
-        private string id;
+        public readonly string Id = Guid.NewGuid().ToString();
 
         private string? flag;
 
@@ -17,10 +17,12 @@ namespace Spark_SocialMediaApp.Models
         private string? text;
 
         private string? media;
+        
+        public string? AuthorId { get; set; }
+        public string? PostId { get; set; }
+
 
         //get set
-
-        public string Id { get => id; }
 
         public string? Flag { get => flag; set => flag = value; }
 
@@ -45,7 +47,7 @@ namespace Spark_SocialMediaApp.Models
         public virtual Post? Post { get; set; }
 
         [ForeignKey(nameof(User.Id))]
-        public virtual User? User { get; set; }
+        public virtual User? Author { get; set; }
 
     }
 }
