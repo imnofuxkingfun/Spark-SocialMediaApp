@@ -1,5 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
+public enum ConnectionStatus
+{
+    Pending,
+    Accepted,
+    Rejected,
+    Blocked
+}
+
 namespace Spark_SocialMediaApp.Models
 {
     public class UserConnections
@@ -13,7 +21,7 @@ namespace Spark_SocialMediaApp.Models
         [Required]
         private string userReceivedId; //followed by
 
-        private string status; //pending, accepted, rejected(delete) for private accounts, accepted for public,
+        private ConnectionStatus status; //pending, accepted, rejected(delete) for private accounts, accepted for public,
                                //must be accepeted for close friends
 
         private bool inCloseFriendsList = false;
@@ -26,6 +34,10 @@ namespace Spark_SocialMediaApp.Models
             {
                 return userSentId;
             }
+            set
+            {
+                userSentId = value;
+            }
         }
 
         public string UserReceivedId
@@ -34,9 +46,13 @@ namespace Spark_SocialMediaApp.Models
             {
                 return userReceivedId;
             }
+            set
+            {
+                userReceivedId = value;
+            }
         }
 
-        public string Status
+        public ConnectionStatus Status
         {
             get
             {

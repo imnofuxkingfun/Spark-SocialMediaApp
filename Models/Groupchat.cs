@@ -35,8 +35,8 @@ namespace Spark_SocialMediaApp.Models
         }
 
         ///
-        public virtual ICollection<GroupchatMembers>? Members { get; set; }
+        public virtual ICollection<GroupchatMember>? Members { get; set; }
 
-        public virtual ICollection<GroupchatMessages>? Messages { get; set; }
+        public virtual ICollection<GroupchatMessage>? Messages { get; set; }
     }
 }

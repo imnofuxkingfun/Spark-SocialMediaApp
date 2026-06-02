@@ -40,7 +40,6 @@ public class SettingsModel : PageModel
     {
         logger.LogInformation("UpdateSettings called");
 
-        // Add this logging to see the actual raw form values
         logger.LogInformation($"All form keys: {string.Join(", ", Request.Form.Keys)}");
         foreach (var key in Request.Form.Keys.Where(k => k.Contains("ContentFilters")))
         {
@@ -72,7 +71,7 @@ public class SettingsModel : PageModel
                 .Where(k => k.StartsWith("ContentFilters["))
                 .Select(k => k.Split('[', ']')[1])
                 .Distinct()
-                .ToList();  // Convert to list to actually execute
+                .ToList(); 
 
             logger.LogInformation($"Filter keys found: {string.Join(", ", filterKeys)}");
 

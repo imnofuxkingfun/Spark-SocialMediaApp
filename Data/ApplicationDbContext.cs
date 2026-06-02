@@ -25,6 +25,11 @@ namespace Spark_SocialMediaApp.Data
                 .HasForeignKey(p => p.AuthorId)
                 .OnDelete(DeleteBehavior.Cascade); //delete associated spark / blog
 
+            modelBuilder.Entity<Post>()
+                .HasMany(c => c.Comments)
+                .WithOne(p => p.Post)
+                .OnDelete(DeleteBehavior.Cascade); //delete associated comments when post is deleted)
+
             //liked posts
             modelBuilder.Entity<LikedPosts>()
                 .HasKey(lp => new { lp.UserId, lp.PostId });
@@ -93,6 +98,12 @@ namespace Spark_SocialMediaApp.Data
                 .HasForeignKey(uc => uc.UserReceivedId)
                 .OnDelete(DeleteBehavior.NoAction);
 
+            modelBuilder.Entity<UserConnections>()
+                .HasOne(uc => uc.UserSent)
+                .WithMany(u => u.BlockedUsers)
+                .HasForeignKey(uc => uc.UserSentId)
+                .OnDelete(DeleteBehavior.NoAction);
+
             ///?
             modelBuilder.Entity<Groupchat>()
                 .HasKey(a => a.Id);
@@ -106,16 +117,16 @@ namespace Spark_SocialMediaApp.Data
                 .HasForeignKey(m => m.SenderId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<Comments>()
+            modelBuilder.Entity<Comment>()
                 .HasKey(c => c.Id);
 
-            modelBuilder.Entity<Comments>()
+            modelBuilder.Entity<Comment>()
                 .HasOne(c => c.Author)
                 .WithMany(u => u.Comments)
                 .HasForeignKey(c => c.AuthorId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<Comments>()
+            modelBuilder.Entity<Comment>()
                 .HasOne(c => c.Post)
                 .WithMany(p => p.Comments)
                 .HasForeignKey(c => c.PostId)
@@ -166,7 +177,7 @@ namespace Spark_SocialMediaApp.Data
         public DbSet<Post> Posts { get; set; }
         public DbSet<LikedPosts> LikedPosts { get; set; }
         public DbSet<SavedPosts> SavedPosts { get; set; }
-        public DbSet<Comments> Comments { get; set; }
+        public DbSet<Comment> Comments { get; set; }
     }
 
 }

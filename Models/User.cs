@@ -79,21 +79,21 @@ namespace Spark_SocialMediaApp.Models
 
 
         /// /////////
-        public virtual ICollection<LikedPosts>? LikedPosts { get; set; }
+        public virtual ICollection<LikedPost>? LikedPosts { get; set; }
 
-        public virtual ICollection<SavedPosts>? SavedPosts { get; set; }
+        public virtual ICollection<SavedPost>? SavedPosts { get; set; }
 
         public virtual ICollection<Post>? CreatedPosts { get; set; }
 
-        public virtual ICollection<Comments>? Comments { get; set; }
+        public virtual ICollection<Comment>? Comments { get; set; }
 
         public virtual ICollection<UserConnections>? Following { get; set; }
 
         public virtual ICollection<UserConnections>? FollowedBy { get; set; }
 
-        public virtual ICollection<GroupchatMembers>? Groupchats { get; set; }
+        public virtual ICollection<GroupchatMember>? Groupchats { get; set; }
 
-        public virtual ICollection<GroupchatMessages>? GroupchatMessages { get; set; }
+        public virtual ICollection<GroupchatMessage>? GroupchatMessages { get; set; }
 
         public virtual ICollection<UserConnections>? BlockedUsers { get; set; }
 

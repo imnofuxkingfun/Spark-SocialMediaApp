@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 public enum PrivacySettings
 {
+    None, //unset, should not be used
     Public,
     Private,
     CloseFriends
@@ -20,7 +21,7 @@ namespace Spark_SocialMediaApp.Models
         [Required]
         private string authorId;
 
-        private PrivacySettings privacy { get; set; } = PrivacySettings.Public;
+        private PrivacySettings privacy { get; set; } = PrivacySettings.None;
 
         private Dictionary<string, bool> contentFilters = UserSettings.ContentFilterInit();
 
@@ -62,11 +63,11 @@ namespace Spark_SocialMediaApp.Models
 
         public virtual User? Author { get; set; }
 
-        public virtual ICollection<Comments>? Comments { get; set; }
+        public virtual ICollection<Comment>? Comments { get; set; }
 
-        public virtual ICollection<LikedPosts>? LikedByUsers { get; set; }
+        public virtual ICollection<LikedPost>? LikedByUsers { get; set; }
 
-        public virtual ICollection<SavedPosts>? SavedByUsers { get; set; }
+        public virtual ICollection<SavedPost>? SavedByUsers { get; set; }
 
         //content tags
     }

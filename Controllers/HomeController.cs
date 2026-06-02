@@ -1,10 +1,12 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Spark_SocialMediaApp.Data;
 using Spark_SocialMediaApp.Models;
 
 namespace Spark_SocialMediaApp.Controllers
 {
+    [Authorize]
     public class HomeController : Controller
     {
         private readonly ApplicationDbContext _db;
@@ -14,11 +16,15 @@ namespace Spark_SocialMediaApp.Controllers
             _db = db;
         }
 
-        public IActionResult Index()
+        public IActionResult Index() // = following
         {
-            
+            //!!! to implement following feed
+            var posts = _db.Posts.ToList();
+            ViewBag.Posts = posts;
             return View();
         }
+
+        //+tag feed
 
         public IActionResult Privacy()
         {

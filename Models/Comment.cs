@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Spark_SocialMediaApp.Models
 {
-    public class Comments
+    public class Comment
     {
         [Key]
         public readonly string Id = Guid.NewGuid().ToString();

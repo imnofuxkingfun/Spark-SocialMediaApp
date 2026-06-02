@@ -1,6 +1,6 @@
 ﻿namespace Spark_SocialMediaApp.Models
 {
-    public class GroupchatMembers
+    public class GroupchatMember
     {
         public string? GroupchatId;
 

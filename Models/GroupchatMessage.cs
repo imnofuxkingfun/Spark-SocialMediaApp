@@ -2,7 +2,7 @@
 
 namespace Spark_SocialMediaApp.Models
 {
-    public class GroupchatMessages
+    public class GroupchatMessage
     {
         [Key]
         public readonly string Id = Guid.NewGuid().ToString();
@@ -43,5 +43,7 @@ namespace Spark_SocialMediaApp.Models
         public virtual Groupchat? Groupchat { get; set; }
 
         public virtual User? Sender { get; set; }
+
+        public virtual Post? Post { get; set; }
     }
 }

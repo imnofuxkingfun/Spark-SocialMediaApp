@@ -1,6 +1,6 @@
 ﻿namespace Spark_SocialMediaApp.Models
 {
-    public class SavedPosts
+    public class LikedPost
     {
         public string? UserId { get; }
         public string? PostId { get; }
