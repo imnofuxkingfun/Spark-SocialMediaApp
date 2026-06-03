@@ -30,6 +30,9 @@ namespace Spark_SocialMediaApp.Data
                 .WithOne(p => p.Post)
                 .OnDelete(DeleteBehavior.Cascade); //delete associated comments when post is deleted)
 
+            modelBuilder.Entity<Spark>();
+            modelBuilder.Entity<Blog>();
+
             //liked posts
             modelBuilder.Entity<LikedPost>()
                 .HasKey(lp => new { lp.UserId, lp.PostId });

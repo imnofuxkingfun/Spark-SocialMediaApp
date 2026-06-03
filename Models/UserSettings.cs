@@ -17,13 +17,13 @@ namespace Spark_SocialMediaApp.Models
 
     public class UserSettings
     {
-        public static Dictionary<string, bool> ContentFilterInit()
+        public static Dictionary<string, bool> ContentFilterInit(bool value=true)
         {
-           
+            
             Dictionary<string, bool> temp = new Dictionary<string, bool>();
             foreach (ContentFilterType filter in Enum.GetValues(typeof(ContentFilterType)).Cast<ContentFilterType>())
             {
-                temp.Add(filter.ToString(), true);
+                temp.Add(filter.ToString(), value);
             }
             return temp;
         }

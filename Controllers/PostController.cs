@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Spark_SocialMediaApp.Models;
+using Microsoft.EntityFrameworkCore;
 using Spark_SocialMediaApp.Data;
+using Spark_SocialMediaApp.Models;
+using Spark_SocialMediaApp.Services;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Spark_SocialMediaApp.Controllers
 {
@@ -13,19 +16,24 @@ namespace Spark_SocialMediaApp.Controllers
         private readonly ApplicationDbContext db;
         private readonly UserManager<User> userManager;
         private readonly RoleManager<IdentityRole> roleManager;
+        private readonly IWebHostEnvironment _env;
 
-        public PostController(ILogger<PostController> logger, ApplicationDbContext db, UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
+        public PostController(ILogger<PostController> logger, ApplicationDbContext db, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IWebHostEnvironment env)
         {
             this.logger = logger;
             this.db = db;
             this.userManager = userManager;
             this.roleManager = roleManager;
+            this._env = env;
         }
 
         [AllowAnonymous]
         public IActionResult Show(string id)
         {
-            Post post = db.Posts.Find(id);
+            Post? post = db.Posts
+                .Include(c => c.Comments)
+                .FirstOrDefault(p => p.Id == id);
+
             if (post.GetType() == typeof(Spark))
             {
                 return View("ShowSpark", post);
@@ -34,71 +42,246 @@ namespace Spark_SocialMediaApp.Controllers
             {
                 return View("ShowBlog", post);
             }
-            return Redirect("Home/Index");
+            return Redirect("/Home/Index");
         }
 
         [Authorize]
-        public IActionResult CreatePost()
+        public async Task <IActionResult> CreatePost()
         {
+            var userSettings = await db.UserSettings.FindAsync(userManager.GetUserId(User));
+            ViewBag.PrivacyPublic = userSettings.PrivacyPublic;
+
+            Dictionary<string, bool> contentFilters = UserSettings.ContentFilterInit(false);
+            ViewBag.ContentFilters = contentFilters;
             return View();
         }
 
         //spark logic
         [Authorize, HttpPost]
-        public IActionResult CreateSpark([FromForm] Spark spark)
+        public async Task<IActionResult> CreateSpark(string privacy, string? text, List<IFormFile>? media)
         {
-            if (spark.Privacy == PrivacySettings.None)
+            if (text == null && (media == null || media.Count == 0))
             {
-                spark.Privacy = db.UserSettings.Find(userManager.GetUserId(User)).PrivacyPublic ? PrivacySettings.Public : PrivacySettings.Private;
+                ModelState.AddModelError("SparkError", "Spark must contain at least either text or images");
+                return RedirectToAction("CreatePost");
             }
-            spark.AuthorId = userManager.GetUserId(User);
+
+            var spark = new Spark
+            {
+                Text = text,
+                Media = new List<string>(),
+                AuthorId = userManager.GetUserId(User)
+            };
+
+            // Handle media uploads to storage
+            if (media != null && media.Count > 0)
+            {
+                ProjectService projectService = new ProjectService(db, _env);
+                spark.Media = await projectService.HandleImageStoring(userManager.GetUserId(User), media, "sparks", 4);
+
+                logger.LogInformation($"Uploaded spark media files for spark");
+            }
+
+            PrivacySettings PostPrivacy = PrivacySettings.None;
+            switch (privacy)
+            {
+                case "public":
+                    {
+                        PostPrivacy = PrivacySettings.Public;
+                        break;
+                    }
+                case "private":
+                    {
+                        PostPrivacy = PrivacySettings.Private;
+                        break;
+                    }
+                case "close friends":
+                    {
+                        PostPrivacy = PrivacySettings.CloseFriends;
+                        break;
+                    }
+                default:
+                    {
+                        var userSettings = db.UserSettings.Find(userManager.GetUserId(User));
+                        if (userSettings.PrivacyPublic)
+                            PostPrivacy = PrivacySettings.Public;
+                        else
+                            PostPrivacy = PrivacySettings.Private;
+                        break;
+                    }
+            }
+
+            spark.Privacy = PostPrivacy;
+            logger.LogInformation($"Spark form data - Text: '{text}', Media count: {spark.Media.Count}, Privacy: {privacy}");
+
+            // Log all form keys
+            logger.LogInformation($"Form Keys: {string.Join(", ", Request.Form.Keys)}");
+
+            // content warnings 
+            var warningKeys = Request.Form.Keys
+                .Where(k => k.StartsWith("ContentWarnings["))
+                .Select(k => k.Split('[', ']')[1])
+                .Distinct()
+                .ToList();
+
+            foreach (var warningName in warningKeys)
+            {
+                var value = Request.Form[$"ContentWarnings[{warningName}]"].ToString().Split(',')[0];
+                bool isChecked = value == "true";
+                if (spark.ContentFilters.ContainsKey(warningName))
+                {
+                    spark.ContentFilters[warningName] = isChecked;
+                }
+            }
+
             if (TryValidateModel(spark))
             {
+                logger.LogInformation("Spark Created");
                 db.Posts.Add(spark);
-                db.SaveChangesAsync();
+                await db.SaveChangesAsync();
+                logger.LogInformation("Spark Saved to Database");
             }
-            return Redirect("Home/Index");
+            else
+            {
+                logger.LogWarning("Spark Validation Failed");
+                foreach (var modelState in ModelState.Values)
+                {
+                    foreach (var error in modelState.Errors)
+                    {
+                        logger.LogError($"Validation Error: {error.ErrorMessage}");
+                        if (error.Exception != null)
+                            logger.LogError($"Exception: {error.Exception.Message}");
+                    }
+                }
+            }
+            return Redirect("/Home/Index");
         }
+
         [Authorize, HttpPost]
-        public IActionResult EditSpark(string id, [FromForm] Spark updatedSpark)
+        public IActionResult EditSpark(string id, string? text)
         {
             var spark = (Spark)db.Posts.Find(id);
             if (DateTime.UtcNow - spark.CreatedAt > TimeSpan.FromMinutes(15)) //15 min window for editing 
             {
-                return Redirect("Home/Index");
+                return Redirect("/Home/Index");
             }
-            if (spark != null && (spark.AuthorId == userManager.GetUserId(User) || User.IsInRole("Admin")))
+            if (spark != null && spark.AuthorId == userManager.GetUserId(User))
             {
-                spark = updatedSpark;
+                if(string.IsNullOrEmpty(text) && (spark.Media == null || spark.Media.Count == 0))
+                {
+                    ModelState.AddModelError("SparkError", "Spark must contain at least either text or images");
+                    return RedirectToAction("Show", new { id = id });
+                }
+                spark.Text = text;
                 if (TryValidateModel(spark))
                 {
                     db.Posts.Update(spark);
                     db.SaveChangesAsync();
                 }
             }
-            return Redirect("Home/Index");
+            return RedirectToAction("Show/", new { id = id });
         }
 
 
         //blog logic
         [Authorize, HttpPost]
-        public IActionResult CreateBlog([FromForm] Blog blog)
+        public async Task<IActionResult> CreateBlog(string? privacy, string title, string? text,  List<IFormFile>? images)
         {
+            if(text == null && (images == null || images.Count == 0))
+            {
+                ModelState.AddModelError("BlogError","Blog must contain at least either text or images");
+                return RedirectToAction("CreatePost");
+            }
+
+            Blog blog = new Blog
+            {
+                AuthorId = userManager.GetUserId(User),
+                Title = title,
+                Media = new List<string?>()
+            };
+
+           
+            blog.Text = text;
+
+            // blog image uploads (max 12 images)
+            if (images != null && images.Count > 0)
+            {
+                ProjectService projectService = new ProjectService(db, _env);
+                blog.Media = await projectService.HandleImageStoring(userManager.GetUserId(User), images, "blogs", 12);
+
+
+                logger.LogInformation($"Uploaded blog media files for blog");
+            }
+
+            // privacy string to enum
+            if (!string.IsNullOrEmpty(privacy))
+            {
+                switch (privacy.ToLower())
+                {
+                    case "public":
+                        blog.Privacy = PrivacySettings.Public;
+                        break;
+                    case "private":
+                        blog.Privacy = PrivacySettings.Private;
+                        break;
+                    case "close friends":
+                        blog.Privacy = PrivacySettings.CloseFriends;
+                        break;
+                    default:
+                        blog.Privacy = PrivacySettings.None;
+                        break;
+                }
+            }
+
             if (blog.Privacy == PrivacySettings.None)
             {
                 blog.Privacy = db.UserSettings.Find(userManager.GetUserId(User)).PrivacyPublic ? PrivacySettings.Public : PrivacySettings.Private;
             }
-            blog.AuthorId = userManager.GetUserId(User);
+            logger.LogInformation($"Blog form data - Title: '{blog.Title}', Privacy: {privacy}, Images: {blog.Media?.Count ?? 0}");
+            logger.LogInformation($"Form Keys: {string.Join(", ", Request.Form.Keys)}");
+
+            // content warnings
+            var warningKeys = Request.Form.Keys
+                .Where(k => k.StartsWith("ContentWarnings["))
+                .Select(k => k.Split('[', ']')[1])
+                .Distinct()
+                .ToList();
+
+            foreach (var warningName in warningKeys)
+            {
+                var value = Request.Form[$"ContentWarnings[{warningName}]"].ToString().Split(',')[0];
+                bool isChecked = value == "true";
+                if (blog.ContentFilters.ContainsKey(warningName))
+                {
+                    blog.ContentFilters[warningName] = isChecked;
+                }
+            }
+
             if (TryValidateModel(blog))
             {
+                logger.LogInformation("Blog Created");
                 db.Posts.Add(blog);
-                db.SaveChangesAsync();
+                await db.SaveChangesAsync();
+                logger.LogInformation("Blog Saved to Database");
             }
-            return Redirect("Home/Index");
+            else
+            {
+                logger.LogWarning("Blog Validation Failed");
+                foreach (var modelState in ModelState.Values)
+                {
+                    foreach (var error in modelState.Errors)
+                    {
+                        logger.LogError($"Validation Error: {error.ErrorMessage}");
+                        if (error.Exception != null)
+                            logger.LogError($"Exception: {error.Exception.Message}");
+                    }
+                }
+            }
+            return Redirect("/Home/Index");
         }
 
         [Authorize, HttpPost]
-        public IActionResult EditBlog(string id, [FromForm] Blog updatedBlog)
+        public IActionResult EditBlog(string id, string? text, string title)
         {
             var blog = (Blog)db.Posts.Find(id);
             if (DateTime.UtcNow - blog.CreatedAt > TimeSpan.FromMinutes(15)) //15 min window for editing 
@@ -107,6 +290,18 @@ namespace Spark_SocialMediaApp.Controllers
             }
             if (blog != null && (blog.AuthorId == userManager.GetUserId(User) || User.IsInRole("Admin")))
             {
+                if (string.IsNullOrEmpty(text) && (blog.Media == null || blog.Media.Count == 0))
+                {
+                    ModelState.AddModelError("BlogError", "Blog must contain at least either text or images");
+                    return RedirectToAction("Show", new { id = id });
+                }
+                else if (string.IsNullOrEmpty(title))
+                {
+                    ModelState.AddModelError("BlogError", "Blog must have a title");
+                    return RedirectToAction("Show", new { id = id });
+                }
+                blog.Title = title;
+                blog.Text = text;
                 if (TryValidateModel(blog))
                 {
                     db.Posts.Update(blog);
@@ -114,35 +309,32 @@ namespace Spark_SocialMediaApp.Controllers
                 }
                 db.SaveChangesAsync();
             }
-            return Redirect("Home/Index");
+            return RedirectToAction("Show", new { id = id });
         }
 
 
-        //add comment
-        [HttpPost, Authorize]
-        public async Task<IActionResult> AddComment(string postId, [FromForm] Comment comment)
-        {
-            comment.AuthorId = userManager.GetUserId(User);
-            comment.PostId = postId;
-            if (TryValidateModel(comment))
-            {
-                db.Comments.Add(comment);
-                await db.SaveChangesAsync();
-            }
-            return RedirectToAction("Show", new { id = postId });
-        }
+        
 
 
-        [Authorize]
-        public IActionResult DeletePost(string id)
+        [Authorize, HttpPost]
+        public async Task<IActionResult> DeletePost(string id)
         {
             var post = db.Posts.Find(id);
             if (post != null && (post.AuthorId == userManager.GetUserId(User) || User.IsInRole("Admin")))
             {
+
+                //delete images from server
+
+                ProjectService projectService = new ProjectService(db, _env);
+                
+                projectService.HandleImageDeleting(post.GetType() == typeof(Spark) ? ((Spark)post).Media : ((Blog)post).Media);
+
+
+              
                 db.Posts.Remove(post);
-                db.SaveChangesAsync();
+                await db.SaveChangesAsync();
             }
-            return Redirect("Home/Index");
+            return Redirect("/Home/Index");
         }
 
 

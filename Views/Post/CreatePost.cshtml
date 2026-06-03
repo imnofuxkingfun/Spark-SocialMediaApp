@@ -1,7 +1,14 @@
 @{
     ViewData["Title"] = "Create Post";
 }
-
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <h4 class="alert-heading">Validation Errors</h4>
+        @Html.ValidationSummary(false)
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
@@ -27,16 +34,29 @@
                         <input type="file" class="form-control" id="sparkMedia" name="media" multiple accept="image/*">
                         <small class="text-muted">You can upload up to 4 images</small>
                     </div>
-
                     <div class="mb-3">
                         <label for="sparkPrivacy" class="form-label">Privacy</label>
                         <select class="form-select" id="sparkPrivacy" name="privacy">
-                            <option value="0">Default (based on your settings)</option>
-                            <option value="1">Public</option>
-                            <option value="2">Private</option>
-                            <option value="3">Close Friends</option>
+                            <!option value="public" @(ViewBag.PrivacyPublic ? "selected" : "") >Public</!option>
+                            <!option value="private" @(ViewBag.PrivacyPublic ? "" : "selected")>Private</!option>
+                            <option value="close friends">Close Friends</option>
                         </select>
                     </div>
+
+                    <h5>Content Warnings</h5>
+                    @if (ViewBag.ContentFilters != null)
+                    {
+                        @foreach (var filter in ViewBag.ContentFilters)
+                        {
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="hidden" name="ContentWarnings[@filter.Key]" value="false">
+                                    <input type="checkbox" class="form-check-input" id="ContentWarnings_@filter.Key" name="ContentWarnings[@filter.Key]" value="true" @(filter.Value ? "checked" : "")>
+                                    <label class="form-check-label" for="ContentWarnings_@filter.Key">@filter.Key</label>
+                                </div>
+                            </div>
+                        }
+                    }
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">Post Spark</button>
@@ -55,12 +75,6 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="blogDescription" class="form-label">Description</label>
-                        <textarea class="form-control" id="blogDescription" name="description" maxlength="12" rows="3" placeholder="Brief description of your blog"></textarea>
-                        <small class="text-muted">Max 12 characters</small>
-                    </div>
-
-                    <div class="mb-3">
                         <label for="blogText" class="form-label">Content</label>
                         <textarea class="form-control" id="blogText" name="text" maxlength="5000" rows="8" placeholder="Write your blog content (max 5000 characters)"></textarea>
                         <small class="text-muted">Max 5000 characters</small>
@@ -68,19 +82,34 @@
 
                     <div class="mb-3">
                         <label for="blogImages" class="form-label">Add Images (up to 12 images)</label>
-                        <input type="file" class="form-control" id="blogImages" name="description" multiple accept="image/*">
+                        <input type="file" class="form-control" id="blogImages" name="images" multiple accept="image/*">
                         <small class="text-muted">You can upload up to 12 images</small>
                     </div>
 
                     <div class="mb-3">
                         <label for="blogPrivacy" class="form-label">Privacy</label>
                         <select class="form-select" id="blogPrivacy" name="privacy">
-                            <option value="0">Default (based on your settings)</option>
-                            <option value="1">Public</option>
-                            <option value="2">Private</option>
-                            <option value="3">Close Friends</option>
+                            <option value="">Default (based on your settings)</option>
+                            <option value="public">Public</option>
+                            <option value="private">Private</option>
+                            <option value="close friends">Close Friends</option>
                         </select>
                     </div>
+
+                    <h5>Content Warnings</h5>
+                    @if (ViewBag.ContentFilters != null)
+                    {
+                        @foreach (var filter in ViewBag.ContentFilters)
+                        {
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="hidden" name="ContentWarnings[@filter.Key]" value="false">
+                                    <input type="checkbox" class="form-check-input" id="ContentWarnings_blog_@filter.Key" name="ContentWarnings[@filter.Key]" value="true" @(filter.Value ? "checked" : "")>
+                                    <label class="form-check-label" for="ContentWarnings_blog_@filter.Key">@filter.Key</label>
+                                </div>
+                            </div>
+                        }
+                    }
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">Post Blog</button>

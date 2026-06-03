@@ -10,8 +10,7 @@ namespace Spark_SocialMediaApp.Models
 
         private string? flag;
 
-        [Required]
-        private DateTime createdAt;
+        private DateTime createdAt = DateTime.UtcNow;
 
         [MaxLength(300)]
         private string? text;

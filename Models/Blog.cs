@@ -12,7 +12,7 @@ namespace Spark_SocialMediaApp.Models
         private string? text;
 
         [MaxLength(12)]
-        private string? description; //max 12 poze
+        private List<string?> media; //max 12 poze
 
         //set get
 
@@ -34,20 +34,20 @@ namespace Spark_SocialMediaApp.Models
             set { text = value; }
         }
 
-        public string? Description
+        public List<string?> Media
         {
             get
             {
-                return description;
+                return media;
             }
-            set { description = value; }
+            set { media = value; }
         }
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            if (string.IsNullOrEmpty(Text) && string.IsNullOrEmpty(Description))
+            if (string.IsNullOrEmpty(Text) && (Media == null || Media.Count() == 0))
             {
-                yield return new ValidationResult("Either text or description must be provided.", new[] { nameof(Text), nameof(Description) });
+                yield return new ValidationResult("Either text or description must be provided.", new[] { nameof(Text), nameof(Media) });
             }
         }
     }

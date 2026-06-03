@@ -29,7 +29,9 @@
 
   <ItemGroup>
     <Folder Include="wwwroot\uploads\banner\" />
+    <Folder Include="wwwroot\uploads\comments\" />
     <Folder Include="wwwroot\uploads\profile\" />
+    <Folder Include="wwwroot\uploads\sparks\" />
   </ItemGroup>
 
 </Project>

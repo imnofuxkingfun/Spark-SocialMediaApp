@@ -278,6 +278,11 @@ namespace Spark_SocialMediaApp.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
                     b.Property<int>("Privacy")
                         .HasColumnType("int");
 
@@ -286,6 +291,10 @@ namespace Spark_SocialMediaApp.Migrations
                     b.HasIndex("AuthorId");
 
                     b.ToTable("Posts");
+
+                    b.HasDiscriminator<string>("Discriminator").HasValue("Post");
+
+                    b.UseTphMappingStrategy();
                 });
 
             modelBuilder.Entity("Spark_SocialMediaApp.Models.SavedPost", b =>
@@ -448,6 +457,47 @@ namespace Spark_SocialMediaApp.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("UserSettings");
+                });
+
+            modelBuilder.Entity("Spark_SocialMediaApp.Models.Blog", b =>
+                {
+                    b.HasBaseType("Spark_SocialMediaApp.Models.Post");
+
+                    b.PrimitiveCollection<string>("Media")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Text")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasDiscriminator().HasValue("Blog");
+                });
+
+            modelBuilder.Entity("Spark_SocialMediaApp.Models.Spark", b =>
+                {
+                    b.HasBaseType("Spark_SocialMediaApp.Models.Post");
+
+                    b.PrimitiveCollection<string>("Media")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Text")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.ToTable("Posts", t =>
+                        {
+                            t.Property("Media")
+                                .HasColumnName("Spark_Media");
+
+                            t.Property("Text")
+                                .HasColumnName("Spark_Text");
+                        });
+
+                    b.HasDiscriminator().HasValue("Spark");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

@@ -29,10 +29,7 @@
                 </div>
 
                 <div class="card-body">
-                    @if (!string.IsNullOrEmpty(Model.Description))
-                    {
-                        <p class="lead text-muted">@Model.Description</p>
-                    }
+                   
 
                     <hr />
 
@@ -40,13 +37,13 @@
                         @Html.Raw(System.Web.HttpUtility.HtmlEncode(Model.Text)?.Replace(Environment.NewLine, "<br>"))
                     </div>
 
-                    @* @if (Model.Description != null && Model.Description.Count > 0)
+                    @if (Model.Media != null && Model.Media.Count > 0)
                     {
                         <hr />
                         <div class="mt-4">
                             <h5>Gallery</h5>
                             <div class="row g-3">
-                                @foreach (var media in Model.Description.Take(12))
+                                @foreach (var media in Model.Media.Take(12))
                                 {
                                     <div class="col-md-4">
                                         <figure class="figure w-100">
@@ -56,7 +53,7 @@
                                 }
                             </div>
                         </div>
-                    } *@
+                    }
                 </div>
 
                 <div class="card-footer bg-light">
@@ -80,90 +77,8 @@
                 </div>
             </article>
 
-            <!-- Comments Section -->
-            <section class="card">
-                <div class="card-header bg-light">
-                    <h4 class="mb-0">Comments (@(Model.Comments?.Count ?? 0))</h4>
-                </div>
-
-                <div class="card-body">
-                    @if (User.Identity.IsAuthenticated)
-                    {
-                        <form method="post" action="@Url.Action("AddComment", "Post")" class="mb-5 p-3 bg-light rounded">
-                            <div class="mb-3">
-                                <label for="commentText" class="form-label">Add Your Comment</label>
-                                <textarea class="form-control" id="commentText" name="text" maxlength="300" rows="3" placeholder="Share your thoughts..." required></textarea>
-                                <small class="text-muted">Max 300 characters</small>
-                            </div>
-                            <input type="hidden" name="postId" value="@Model.Id" />
-                            <button type="submit" class="btn btn-primary">Post Comment</button>
-                        </form>
-                    }
-                    else
-                    {
-                        <div class="alert alert-info" role="alert">
-                            <a href="/Identity/Account/Login">Sign in</a> to comment on this blog post.
-                        </div>
-                    }
-
-                    <!-- Comments List -->
-                    @if (Model.Comments != null && Model.Comments.Count > 0)
-                    {
-                        <div class="comments-section">
-                            @foreach (var comment in Model.Comments.OrderByDescending(c => c.CreatedAt))
-                            {
-                                <div class="card mb-3 border-0 border-bottom">
-                                    <div class="card-body pb-3">
-                                        <div class="d-flex justify-content-between align-items-start mb-2">
-                                            <div>
-                                                <h6 class="card-subtitle fw-bold mb-1">@comment.Author?.UserName</h6>
-                                                <small class="text-muted">@comment.CreatedAt.ToString("g")</small>
-                                            </div>
-                                            @if (User.Identity.IsAuthenticated && (comment.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin")))
-                                            {
-                                                <div class="btn-group btn-group-sm" role="group">
-                                                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#editForm@(comment.Id)">Edit</button>
-                                                    <form method="post" action="@Url.Action("DeleteComment", "Comment")" class="d-inline">
-                                                        <input type="hidden" name="id" value="@comment.Id" />
-                                                        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this comment?')">Delete</button>
-                                                    </form>
-                                                </div>
-                                            }
-                                        </div>
-
-                                        <p class="card-text">@comment.Text</p>
-
-                                        @if (!string.IsNullOrEmpty(comment.Media))
-                                        {
-                                            <div class="mt-2">
-                                                <img src="@comment.Media" alt="Comment media" class="img-fluid rounded" style="max-width: 300px; max-height: 300px;">
-                                            </div>
-                                        }
-
-                                        <!-- Edit Comment Form -->
-                                        @if (User.Identity.IsAuthenticated && comment.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
-                                        {
-                                            <div class="collapse mt-3" id="editForm@(comment.Id)">
-                                                <form method="post" action="@Url.Action("EditComment", "Comment")" class="card card-body bg-light">
-                                                    <input type="hidden" name="id" value="@comment.Id" />
-                                                    <div class="mb-2">
-                                                        <textarea class="form-control form-control-sm" name="text" maxlength="300" rows="2">@comment.Text</textarea>
-                                                    </div>
-                                                    <button type="submit" class="btn btn-primary btn-sm">Update</button>
-                                                </form>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    }
-                    else
-                    {
-                        <p class="text-muted text-center py-4">No comments yet. Be the first to share your thoughts!</p>
-                    }
-                </div>
-            </section>
+            <!-- Comments -->
+            <partial name="CommentViewPartial" model="Model" />
 
             <!-- Navigation -->
             <div class="mt-4">

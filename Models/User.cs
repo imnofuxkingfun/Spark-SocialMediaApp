@@ -22,7 +22,7 @@ namespace Spark_SocialMediaApp.Models
 
         //private List<string>? pronouns;
 
-        private DateOnly? joinedAt;
+        private DateOnly? joinedAt = DateOnly.FromDateTime(DateTime.UtcNow);
 
 
         private DateOnly? dateOfBirth;
