@@ -1,0 +1,144 @@
+@model Groupchat
+
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<div class="container-fluid mt-4">
+    <div class="row" style="height: calc(100vh - 100px);">
+        <!-- Sidebar -->
+        <div class="col-lg-3 border-end">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">@Model.Name</h5>
+                    <small class="text-muted">@(Model.Members?.Count ?? 0) members</small>
+                </div>
+                <div class="card-body" style="overflow-y: auto;">
+                    <h6 class="mb-3">Members</h6>
+                    <div class="list-group list-group-flush">
+                        @if (Model.Members != null)
+                        {
+                            @foreach (var member in Model.Members)
+                            {
+                                <div class="list-group-item d-flex align-items-center gap-2">
+                                    @if (!string.IsNullOrEmpty(member.User?.Profile?.ProfilePicture))
+                                    {
+                                        <img src="@member.User.Profile.ProfilePicture"
+                                             alt="Profile" 
+                                             class="rounded-circle" 
+                                             style="width: 30px; height: 30px; object-fit: cover;">
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-secondary" style="width: 30px; height: 30px;"></div>
+                                    }
+                                    <div>
+                                        <small>@member.User?.UserName</small>
+                                        @if (member.IsAdmin)
+                                        {
+                                            <span class="badge bg-primary">Admin</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="@Url.Action("Index", "Groupchat")" class="btn btn-sm btn-secondary w-100">Back to Chats</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Area -->
+        <div class="col-lg-9">
+            <div class="card h-100 d-flex flex-column">
+                <!-- Messages Display -->
+                <div class="card-body" style="overflow-y: auto; flex: 1;">
+                    @if (Model.Messages != null && Model.Messages.Count > 0)
+                    {
+                        @foreach (var message in Model.Messages.OrderBy(m => m.CreatedAt))
+                        {
+                            <div class="mb-3">
+                                <div class="d-flex gap-2 align-items-start">
+                                    @if (!string.IsNullOrEmpty(message.Sender?.Profile?.ProfilePicture))
+                                    {
+                                        <img src="@message.Sender.Profile.ProfilePicture"
+                                             alt="Profile" 
+                                             class="rounded-circle" 
+                                             style="width: 40px; height: 40px; object-fit: cover;">
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle bg-secondary" style="width: 40px; height: 40px;"></div>
+                                    }
+                                    <div style="flex: 1;">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <strong>@message.Sender?.UserName</strong>
+                                                <br />
+                                                <small class="text-muted">@message.CreatedAt.ToString("g")</small>
+                                            </div>
+                                            @if (message.SenderId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                                            {
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button type="button" class="btn btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#editMsg@(message.Id)">Edit</button>
+                                                    <form method="post" action="@Url.Action("DeleteMessage", "GroupchatMessages", new { groupchatId = Model.Id })" class="d-inline">
+                                                        <input type="hidden" name="messageId" value="@message.Id" />
+                                                        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Delete this message?')">Delete</button>
+                                                    </form>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="bg-light p-2 rounded mt-2">
+                                            <p class="mb-0">@message.Text</p>
+                                        </div>
+
+                                        <!-- Edit Message Form -->
+                                        @if (message.SenderId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+                                        {
+                                            <div class="collapse mt-2" id="editMsg@(message.Id)">
+                                                <form method="post" action="@Url.Action("EditMessage", "GroupchatMessages", new { groupchatId = Model.Id })" class="card card-body bg-light p-2">
+                                                    <input type="hidden" name="messageId" value="@message.Id" />
+                                                    <div class="input-group">
+                                                        <input type="text" class="form-control form-control-sm" name="text" value="@message.Text" required>
+                                                        <button type="submit" class="btn btn-primary btn-sm">Update</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center">No messages yet. Start the conversation!</p>
+                    }
+                </div>
+
+                <!-- Message Input -->
+                <div class="card-footer bg-light border-top">
+                    <form method="post" action="@Url.Action("AddMessage", "GroupchatMessages")" class="d-flex gap-2">
+                        <input type="hidden" name="groupchatId" value="@Model.Id" />
+                        <input type="text" 
+                               class="form-control" 
+                               name="text" 
+                               placeholder="Type a message..." 
+                               required 
+                               maxlength="1000">
+                        <button type="submit" class="btn btn-primary">Send</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+    }
+</style>

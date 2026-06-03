@@ -8,10 +8,11 @@ namespace Spark_SocialMediaApp.Models
     {
         [Required]
         [RegularExpression(@"^[a-zA-Z0-9_]{3,20}$", ErrorMessage = "Username must be 3-20 characters, alphanumeric and underscores only")]
+        [MinLength(3), MaxLength(20)]
         private string userName { get; set; }
 
         [Required]
-        [MinLength(1, ErrorMessage = "Display name cannot be null")]
+        [MinLength(1, ErrorMessage = "Display name cannot be null"),MaxLength(20)]
         private string displayName { get; set; } //email -> 2fa n confidential, username -> unique, display name -> whatever
 
 
@@ -94,8 +95,6 @@ namespace Spark_SocialMediaApp.Models
         public virtual ICollection<GroupchatMember>? Groupchats { get; set; }
 
         public virtual ICollection<GroupchatMessage>? GroupchatMessages { get; set; }
-
-        public virtual ICollection<UserConnections>? BlockedUsers { get; set; }
 
         public virtual UserSettings? Settings { get; set; }
         public virtual UserProfile? Profile { get; set; }

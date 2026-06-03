@@ -1,0 +1,60 @@
+@{
+    ViewData["Title"] = "Follow Requests";
+    var followRequests = ViewBag.FollowRequests as List<UserConnections> ?? new List<UserConnections>();
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h1 class="mb-4">Follow Requests</h1>
+
+            @if (followRequests.Count > 0)
+            {
+                <div class="list-group">
+                    @foreach (var request in followRequests.OrderByDescending(r => r.CreatedAt))
+                    {
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center gap-3">
+                                @if (!string.IsNullOrEmpty(request.UserSent?.Profile?.ProfilePicture))
+                                {
+                                    <img src="@request.UserSent.Profile.ProfilePicture" 
+                                         alt="Profile" 
+                                         class="rounded-circle" 
+                                         style="width: 50px; height: 50px; object-fit: cover;">
+                                }
+                                else
+                                {
+                                    <div class="rounded-circle bg-secondary" style="width: 50px; height: 50px;"></div>
+                                }
+                                <div>
+                                    <h6 class="mb-0">@request.UserSent?.UserName</h6>
+                                    <small class="text-muted">@request.UserSent?.Email</small>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <form method="post" action="@Url.Action("AcceptFollowRequest", "Connections")" class="d-inline">
+                                    <input type="hidden" name="followerId" value="@request.UserSentId" />
+                                    <button type="submit" class="btn btn-sm btn-success">Accept</button>
+                                </form>
+                                <form method="post" action="@Url.Action("RejectFollowRequest", "Connections")" class="d-inline">
+                                    <input type="hidden" name="followerId" value="@request.UserSentId" />
+                                    <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info text-center" role="alert">
+                    <p class="mb-0">No pending follow requests at the moment.</p>
+                </div>
+            }
+
+            <div class="mt-4">
+                <a href="@Url.Action("Index", "Home")" class="btn btn-secondary">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>

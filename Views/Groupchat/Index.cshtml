@@ -1,0 +1,46 @@
+@{
+    ViewData["Title"] = "Group Chats";
+    var groupChats = ViewBag.GroupChats as List<Groupchat> ?? new List<Groupchat>();
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Group Chats</h1>
+                <a href="@Url.Action("Create", "Groupchat")" class="btn btn-primary">New Group Chat</a>
+            </div>
+
+            @if (groupChats.Count > 0)
+            {
+                <div class="list-group">
+                    @foreach (var chat in groupChats.OrderByDescending(c => c.CreatedAt))
+                    {
+                        <a href="@Url.Action("Show", "Groupchat", new { id = chat.Id })" class="list-group-item list-group-item-action">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h6 class="mb-1">@chat.Name</h6>
+                                    <small class="text-muted">
+                                        @(chat.Members?.Count ?? 0) member@((chat.Members?.Count ?? 0) != 1 ? "s" : "") • 
+                                        @(chat.Messages?.Count ?? 0) message@((chat.Messages?.Count ?? 0) != 1 ? "s" : "")
+                                    </small>
+                                </div>
+                                <small class="text-muted">@chat.CreatedAt.ToString("g")</small>
+                            </div>
+                        </a>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info text-center" role="alert">
+                    <p class="mb-0">No group chats yet. <a href="@Url.Action("Create", "Groupchat")">Create one now</a>!</p>
+                </div>
+            }
+
+            <div class="mt-4">
+                <a href="@Url.Action("Index", "Home")" class="btn btn-secondary">Back to Home</a>
+            </div>
+        </div>
+    </div>
+</div>

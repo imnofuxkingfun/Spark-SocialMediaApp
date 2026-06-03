@@ -49,5 +49,14 @@ namespace Spark_SocialMediaApp.Models
         [ForeignKey(nameof(User.Id))]
         public virtual User? Author { get; set; }
 
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (string.IsNullOrEmpty(Text) && string.IsNullOrEmpty(Media))
+            {
+                yield return new ValidationResult("Either text or media must be provided.", new[] { nameof(Text), nameof(Media) });
+            }
+        }
+
     }
 }

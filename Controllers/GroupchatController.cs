@@ -58,8 +58,11 @@ namespace Spark_SocialMediaApp.Controllers
                         IsAdmin = true
                     }
                 };
-            db.Groupchats.Add(groupchat);
-            db.SaveChangesAsync();
+            if(TryValidateModel(groupchat))
+            {
+                db.Groupchats.Add(groupchat);
+                db.SaveChangesAsync();
+            }
             return Redirect("Index");
 
         }
@@ -73,8 +76,14 @@ namespace Spark_SocialMediaApp.Controllers
             {
                 return Redirect("Index");
             }
+            //!!!
             groupchat.Name = formGroupchat.Name;
-            db.SaveChangesAsync();
+            if (TryValidateModel(groupchat))
+            {
+                db.Groupchats.Update(groupchat);
+                db.SaveChangesAsync();
+            }
+            
             return Redirect($"Show/{id}");
         }
 

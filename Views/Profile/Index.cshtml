@@ -1,0 +1,116 @@
+@model UserProfile
+@{
+    ViewData["Title"] = "Profile";
+}
+<script src="jscolor.js"></script>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <h4 class="alert-heading">Validation Errors</h4>
+        @Html.ValidationSummary(false)
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Profile Header -->
+            <div class="card mb-4">
+                @if (!string.IsNullOrEmpty(Model.BannerPicture))
+                {
+                    <img src="@Model.BannerPicture" class="img-fluid" alt="Banner" style="height: 250px; object-fit: cover;">
+                }
+                else if (!string.IsNullOrEmpty(Model.BannerColor))
+                {
+                    <div style="height: 250px; background-color: @Model.BannerColor;"></div>
+                }
+
+                <div class="card-body">
+                    <div class="d-flex align-items-start gap-3">
+                        @if (!string.IsNullOrEmpty(Model.ProfilePicture))
+                        {
+                            <img src="@Model.ProfilePicture" alt="Profile Picture" 
+                                 class="rounded-circle img-fluid" 
+                                 style="width: 120px; height: 120px; object-fit: cover; border: 4px solid white; margin-top: -60px;">
+                        }
+                        <div class="flex-grow-1">
+                            <h3 class="card-title mb-1">@Model.User?.DisplayName</h3>
+                            <p class="text-muted">@Model.User?.UserName</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Profile Form -->
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Edit Profile</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="@Url.Action("UpdateProfile", "Profile")" enctype="multipart/form-data">
+
+                        <div class="mb-3">
+                            <label for="userName" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="userName" name="userName" placeholder="@Model.User?.UserName" maxlength="20">
+                        
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="displayName" class="form-label">Display Name</label>
+                                <input type="text" class="form-control" id="displayName" name="displayName" placeholder="@Model.User?.DisplayName" maxlength="20">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="profilePicture" class="form-label">Profile Picture</label>
+                            <input type="file" class="form-control" id="profilePicture" name="profilePicture" accept="image/*">
+                            <small class="text-muted">Upload a new profile picture</small>
+
+                            @if (Model.ProfilePicture != ViewBag.DefaultProfilePicture && !string.IsNullOrEmpty(Model.ProfilePicture))
+                            {
+                                <button type="submit" class="btn btn-danger mb-3" formaction="@Url.Action("DeleteProfilePicture", "Profile")">
+                                    Delete
+                                </button>
+                            }
+                        </div>
+
+                        
+
+                        <div class="mb-3">
+                            <label for="bannerPicture" class="form-label">Banner Picture</label>
+                            <input type="file" class="form-control" id="bannerPicture" name="bannerPicture" accept="image/*">
+                            <small class="text-muted">Upload a new banner picture</small>
+
+                            @if (Model.BannerPicture != null)
+                            {
+                                <button type="submit" class="btn btn-danger mb-3" formaction="@Url.Action("DeleteBannerPicture", "Profile")">
+                                    Delete
+                                </button>
+                            }
+
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="bannerColor" class="form-label">Banner Color (if no image)</label>
+                            <div class="input-group">
+                                <span class="input-group-text">#</span>
+                                <input type="color" class="form-control" id="bannerColor" name="bannerColor" placeholder="#B4B4B4" value="@Model.BannerColor">
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Save Changes</button>
+                            <a href="@Url.Action("Index", "Home")" class="btn btn-secondary">Back</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Account Settings Link -->
+            <div class="mt-4 text-center">
+                <a href="/Identity/Account/Manage" class="btn btn-outline-secondary">Account Settings</a>
+            </div>
+        </div>
+    </div>
+</div>

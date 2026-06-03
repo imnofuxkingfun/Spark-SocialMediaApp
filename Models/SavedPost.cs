@@ -2,8 +2,8 @@
 {
     public class SavedPost
     {
-        public string? UserId { get; }
-        public string? PostId { get; }
+        public string? UserId { get; set; }
+        public string? PostId { get; set; }
 
         public virtual User? User { get; set; }
         public virtual Post? Post { get; set; }

@@ -28,7 +28,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Views\Settings\" />
+    <Folder Include="wwwroot\uploads\banner\" />
+    <Folder Include="wwwroot\uploads\profile\" />
   </ItemGroup>
 
 </Project>

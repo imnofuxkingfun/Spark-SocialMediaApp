@@ -56,8 +56,11 @@ namespace Spark_SocialMediaApp.Controllers
                 UserReceivedId = followedId,
                 Status = status
             };
-            db.UserConnections.Add(connection);
-            db.SaveChangesAsync();
+            if(TryValidateModel(connection))
+            {
+                db.UserConnections.Add(connection);
+                db.SaveChangesAsync();
+            }
             return Redirect("/Home/Index");
 
         }
@@ -75,7 +78,7 @@ namespace Spark_SocialMediaApp.Controllers
                 {
                     db.UserConnections.Remove(connection);
                 }
-
+                db.UserConnections.Update(connection);
                 db.SaveChangesAsync();
             }
             return Redirect("/Home/Index");
@@ -118,9 +121,13 @@ namespace Spark_SocialMediaApp.Controllers
                 UserReceivedId = blockedId,
                 Status = ConnectionStatus.Blocked
             };
-            db.UserConnections.Add(connection);
-            db.SaveChangesAsync();
-            return Redirect("/Home/Index");
+            if (TryValidateModel(connection))
+            {
+                db.UserConnections.Add(connection);
+                db.SaveChangesAsync();
+
+            }
+                return Redirect("/Home/Index");
         }
     }
 }

@@ -6,11 +6,12 @@
     ViewData["ActivePage"] = ManageNavPages.Settings;
 }
 
-<form id="settingsForm" method="post">
+<form asp-controller="Settings" asp-action="UpdateSettings" method="post">
     <div class="mb-3">
         <div class="form-check">
-            <input asp-for="Settings.PrivacyPublic" type="checkbox" class="form-check-input" id="PrivacyPublic">
-            <label asp-for="Settings.PrivacyPublic" class="form-check-label">Public Profile</label>
+            <input type="checkbox" class="form-check-input" id="PrivacyPublic" name="Settings.PrivacyPublic" value="true" @(Model.Settings.PrivacyPublic ? "checked" : "")>
+            <input type="hidden" name="PrivacyPublic" value="false">
+            <label class="form-check-label" for="PrivacyPublic">Public Profile</label>
         </div>
     </div>
 
@@ -20,14 +21,13 @@
     {
         <div class="mb-3">
             <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="ContentFilters_@filter.Key" name="ContentFilters[@filter.Key]" value="true" @(filter.Value ? "checked" : "")>
                 <input type="hidden" name="ContentFilters[@filter.Key]" value="false">
-
+                <input type="checkbox" class="form-check-input" id="ContentFilters_@filter.Key" name="ContentFilters[@filter.Key]" value="true" @(filter.Value ? "checked" : "")>
                 <label class="form-check-label" for="ContentFilters_@filter.Key">@filter.Key</label>
             </div>
         </div>
     }
-    <input asp-for="Settings.UserId" type="hidden" value="@Model.Settings.UserId">
+    <input type="hidden" name="UserId" value="UserId">
 
     <button type="submit" class="btn btn-primary">Apply</button>
 </form>

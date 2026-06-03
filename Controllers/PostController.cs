@@ -22,10 +22,11 @@ namespace Spark_SocialMediaApp.Controllers
             this.roleManager = roleManager;
         }
 
+        [AllowAnonymous]
         public IActionResult Show(string id)
         {
             Post post = db.Posts.Find(id);
-            if( post.GetType() == typeof(Spark))
+            if (post.GetType() == typeof(Spark))
             {
                 return View("ShowSpark", post);
             }
@@ -46,12 +47,12 @@ namespace Spark_SocialMediaApp.Controllers
         [Authorize, HttpPost]
         public IActionResult CreateSpark([FromForm] Spark spark)
         {
-            if (spark.Privacy==PrivacySettings.None)
+            if (spark.Privacy == PrivacySettings.None)
             {
                 spark.Privacy = db.UserSettings.Find(userManager.GetUserId(User)).PrivacyPublic ? PrivacySettings.Public : PrivacySettings.Private;
             }
             spark.AuthorId = userManager.GetUserId(User);
-            if (ModelState.IsValid)
+            if (TryValidateModel(spark))
             {
                 db.Posts.Add(spark);
                 db.SaveChangesAsync();
@@ -69,7 +70,11 @@ namespace Spark_SocialMediaApp.Controllers
             if (spark != null && (spark.AuthorId == userManager.GetUserId(User) || User.IsInRole("Admin")))
             {
                 spark = updatedSpark;
-                db.SaveChangesAsync();
+                if (TryValidateModel(spark))
+                {
+                    db.Posts.Update(spark);
+                    db.SaveChangesAsync();
+                }
             }
             return Redirect("Home/Index");
         }
@@ -84,7 +89,7 @@ namespace Spark_SocialMediaApp.Controllers
                 blog.Privacy = db.UserSettings.Find(userManager.GetUserId(User)).PrivacyPublic ? PrivacySettings.Public : PrivacySettings.Private;
             }
             blog.AuthorId = userManager.GetUserId(User);
-            if (ModelState.IsValid)
+            if (TryValidateModel(blog))
             {
                 db.Posts.Add(blog);
                 db.SaveChangesAsync();
@@ -102,7 +107,11 @@ namespace Spark_SocialMediaApp.Controllers
             }
             if (blog != null && (blog.AuthorId == userManager.GetUserId(User) || User.IsInRole("Admin")))
             {
-                blog = updatedBlog;
+                if (TryValidateModel(blog))
+                {
+                    db.Posts.Update(blog);
+                    db.SaveChangesAsync();
+                }
                 db.SaveChangesAsync();
             }
             return Redirect("Home/Index");
@@ -115,7 +124,7 @@ namespace Spark_SocialMediaApp.Controllers
         {
             comment.AuthorId = userManager.GetUserId(User);
             comment.PostId = postId;
-            if (ModelState.IsValid)
+            if (TryValidateModel(comment))
             {
                 db.Comments.Add(comment);
                 await db.SaveChangesAsync();
@@ -134,6 +143,42 @@ namespace Spark_SocialMediaApp.Controllers
                 db.SaveChangesAsync();
             }
             return Redirect("Home/Index");
+        }
+
+
+        //like post
+        [HttpPost, Authorize]
+        public async Task<IActionResult> LikePost(string postId)
+        {
+            var post = db.Posts.Find(postId);
+            if (post != null)
+            {
+                var userId = userManager.GetUserId(User);
+                if (!db.LikedPosts.Any(l => l.PostId == postId && l.UserId == userId))
+                {
+                    db.LikedPosts.Add(new LikedPost { PostId = postId, UserId = userId });
+                    await db.SaveChangesAsync();
+                }
+            }
+            return RedirectToAction("Show", new { id = postId });
+        }
+
+        //save post
+        [HttpPost, Authorize]
+        public async Task<IActionResult> SavePost(string postId)
+        {
+            var post = db.Posts.Find(postId);
+            if (post != null)
+            {
+                var userId = userManager.GetUserId(User);
+                if (!db.SavedPosts.Any(s => s.PostId == postId && s.UserId == userId))
+                {
+                    db.SavedPosts.Add(new SavedPost { PostId = postId, UserId = userId });
+                    await db.SaveChangesAsync();
+                }
+            }
+            return RedirectToAction("Show", new { id = postId });
+
         }
     }
 }

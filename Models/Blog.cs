@@ -43,5 +43,12 @@ namespace Spark_SocialMediaApp.Models
             set { description = value; }
         }
 
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (string.IsNullOrEmpty(Text) && string.IsNullOrEmpty(Description))
+            {
+                yield return new ValidationResult("Either text or description must be provided.", new[] { nameof(Text), nameof(Description) });
+            }
+        }
     }
 }

@@ -45,5 +45,13 @@ namespace Spark_SocialMediaApp.Models
         public virtual User? Sender { get; set; }
 
         public virtual Post? Post { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (string.IsNullOrEmpty(Text) && string.IsNullOrEmpty(Media) && (Post == null))
+            {
+                yield return new ValidationResult("Either text, media or refrences post must be provided.", new[] { nameof(Text), nameof(Media) });
+            }
+        }
     }
 }

@@ -47,19 +47,8 @@ namespace Spark_SocialMediaApp.Models
         //constructor
         public UserProfile()
         {
-            string defaultImagePath = @"./wwwroot/defaults/default_icon.png";
-
-            if (File.Exists(defaultImagePath))
-            {
-                byte[] defaultProfilePicture = File.ReadAllBytes(defaultImagePath);
-                ProfilePicture = Convert.ToBase64String(defaultProfilePicture);
-            }
-            else
-            {
-                ProfilePicture = string.Empty;
-            }
-
-            BannerColor = "B4B4B4";
+            ProfilePicture = "/defaults/default_icon.png";
+            BannerColor = "#B4B4B4";
         }
 
 

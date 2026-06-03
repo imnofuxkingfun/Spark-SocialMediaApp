@@ -34,7 +34,11 @@ namespace Spark_SocialMediaApp.Controllers
             {
                 ///!!! 
                 message.Text = updatedMessage.Text;
-                db.SaveChangesAsync();
+                if (TryValidateModel(message))
+                {
+                    db.GroupchatMessages.Update(message);
+                    db.SaveChangesAsync();
+                }
             }
             return Redirect("/Groupchat/Show/" + groupchatId);
         }

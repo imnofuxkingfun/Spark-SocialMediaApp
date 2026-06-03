@@ -31,16 +31,16 @@ namespace Spark_SocialMediaApp.Data
                 .OnDelete(DeleteBehavior.Cascade); //delete associated comments when post is deleted)
 
             //liked posts
-            modelBuilder.Entity<LikedPosts>()
+            modelBuilder.Entity<LikedPost>()
                 .HasKey(lp => new { lp.UserId, lp.PostId });
 
-            modelBuilder.Entity<LikedPosts>()
+            modelBuilder.Entity<LikedPost>()
                 .HasOne(lp => lp.User)
                 .WithMany(u => u.LikedPosts)
                 .HasForeignKey(lp => lp.UserId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<LikedPosts>()
+            modelBuilder.Entity<LikedPost>()
                 .HasOne(lp => lp.Post)
                 .WithMany(p => p.LikedByUsers)
                 .HasForeignKey(lp => lp.PostId)
@@ -48,16 +48,16 @@ namespace Spark_SocialMediaApp.Data
 
 
             //saved posts
-            modelBuilder.Entity<SavedPosts>()
+            modelBuilder.Entity<SavedPost>()
                 .HasKey(sp => new { sp.UserId, sp.PostId });
 
-            modelBuilder.Entity<SavedPosts>()
+            modelBuilder.Entity<SavedPost>()
                 .HasOne(lp => lp.User)
                 .WithMany(u => u.SavedPosts)
                 .HasForeignKey(lp => lp.UserId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<SavedPosts>()
+            modelBuilder.Entity<SavedPost>()
                 .HasOne(lp => lp.Post)
                 .WithMany(p => p.SavedByUsers)
                 .HasForeignKey(lp => lp.PostId)
@@ -66,17 +66,17 @@ namespace Spark_SocialMediaApp.Data
 
             //groupchat members
 
-            modelBuilder.Entity<GroupchatMembers>()
+            modelBuilder.Entity<GroupchatMember>()
                 .HasKey(lp => new { lp.UserId, lp.GroupchatId });
 
-            modelBuilder.Entity<GroupchatMembers>()
+            modelBuilder.Entity<GroupchatMember>()
                 .HasOne(lp => lp.User)
                 .WithMany(u => u.Groupchats)
                 .HasForeignKey(lp => lp.UserId)
                 .OnDelete(DeleteBehavior.NoAction);
 
 
-            modelBuilder.Entity<GroupchatMembers>()
+            modelBuilder.Entity<GroupchatMember>()
                 .HasOne(lp => lp.Groupchat)
                 .WithMany(p => p.Members)
                 .HasForeignKey(lp => lp.GroupchatId)
@@ -98,20 +98,14 @@ namespace Spark_SocialMediaApp.Data
                 .HasForeignKey(uc => uc.UserReceivedId)
                 .OnDelete(DeleteBehavior.NoAction);
 
-            modelBuilder.Entity<UserConnections>()
-                .HasOne(uc => uc.UserSent)
-                .WithMany(u => u.BlockedUsers)
-                .HasForeignKey(uc => uc.UserSentId)
-                .OnDelete(DeleteBehavior.NoAction);
-
             ///?
             modelBuilder.Entity<Groupchat>()
                 .HasKey(a => a.Id);
 
-            modelBuilder.Entity<GroupchatMessages>()
+            modelBuilder.Entity<GroupchatMessage>()
                 .HasKey(a => a.Id);
 
-            modelBuilder.Entity<GroupchatMessages>()
+            modelBuilder.Entity<GroupchatMessage>()
                 .HasOne(m => m.Sender)
                 .WithMany(u => u.GroupchatMessages)
                 .HasForeignKey(m => m.SenderId)
@@ -170,13 +164,13 @@ namespace Spark_SocialMediaApp.Data
 
         //groupchat related
         public DbSet<Groupchat> Groupchats { get; set; }
-        public DbSet<GroupchatMembers> GroupchatMembers { get; set; }
-        public DbSet<GroupchatMessages> GroupchatMessages { get; set; }
+        public DbSet<GroupchatMember> GroupchatMembers { get; set; }
+        public DbSet<GroupchatMessage> GroupchatMessages { get; set; }
 
         //post related
         public DbSet<Post> Posts { get; set; }
-        public DbSet<LikedPosts> LikedPosts { get; set; }
-        public DbSet<SavedPosts> SavedPosts { get; set; }
+        public DbSet<LikedPost> LikedPosts { get; set; }
+        public DbSet<SavedPost> SavedPosts { get; set; }
         public DbSet<Comment> Comments { get; set; }
     }
 

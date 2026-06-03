@@ -26,6 +26,8 @@ namespace Spark_SocialMediaApp.Models
 
         private bool inCloseFriendsList = false;
 
+        private DateTime createdAt = DateTime.UtcNow;
+
         //get set
 
         public string UserSentId
@@ -68,6 +70,15 @@ namespace Spark_SocialMediaApp.Models
                 return inCloseFriendsList;
             }
             set { inCloseFriendsList = value; }
+        }
+
+        public DateTime CreatedAt
+        {
+            get
+            {
+                return createdAt;
+            }
+            set { createdAt = value; }
         }
 
         ///

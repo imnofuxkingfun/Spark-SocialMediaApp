@@ -36,7 +36,11 @@ namespace Spark_SocialMediaApp.Controllers
                 ///!!!
                 comment.Text = updatedComment.Text;
                 comment.Media = updatedComment.Media;
-                db.SaveChangesAsync();
+                if (TryValidateModel(comment))
+                {
+                    db.Comments.Update(comment);
+                    db.SaveChangesAsync();
+                }
             }
             return Redirect("/Post/Show/" + comment.PostId);
         }

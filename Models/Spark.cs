@@ -33,5 +33,14 @@ namespace Spark_SocialMediaApp.Models
         }
 
 
+        //at least one of text or media must be provided
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (string.IsNullOrEmpty(Text) && (Media == null || Media.Count == 0))
+            {
+                yield return new ValidationResult("Either text or media must be provided.", new[] { nameof(Text), nameof(Media) });
+            }
+        }
+
     }
 }
