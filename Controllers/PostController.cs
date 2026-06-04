@@ -322,20 +322,30 @@ namespace Spark_SocialMediaApp.Controllers
         public async Task<IActionResult> DeletePost(string id)
         {
             var post = db.Posts.Find(id);
+            ProjectService projectService = new ProjectService(db, _env);
             if (post != null && (post.AuthorId == userManager.GetUserId(User) || User.IsInRole("Admin")))
             {
 
                 //delete images from server
 
-                ProjectService projectService = new ProjectService(db, _env);
+                
                 
                 projectService.HandleImageDeleting(post.GetType() == typeof(Spark) ? ((Spark)post).Media : ((Blog)post).Media);
 
+                //deleting comments and respective images
+                var comments = db.Comments.Where(c => c.PostId == id).ToList();
+                foreach (var comment in comments)
+                {
+                    projectService.HandleImageDeleting(new List<string> { comment.Media });
+                    db.Comments.Remove(comment);
+                }
 
-              
                 db.Posts.Remove(post);
                 await db.SaveChangesAsync();
             }
+
+            
+
             return Redirect("/Home/Index");
         }
 

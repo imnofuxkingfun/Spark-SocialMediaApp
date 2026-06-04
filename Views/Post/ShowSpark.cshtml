@@ -18,8 +18,14 @@
                         @if (User.Identity.IsAuthenticated && (Model.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin")))
                         {
                             <div class="btn-group" role="group">
-                                <a href="@Url.Action("EditSpark", "Post", new { id = Model.Id })" class="btn btn-sm btn-outline-primary">Edit</a>
-                                <a href="@Url.Action("DeletePost", "Post", new { id = Model.Id })" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure?')">Delete</a>
+                                @if (User.Identity.IsAuthenticated && (Model.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin")))
+                                {
+                                    <a href="@Url.Action("EditSpark", "Post", new { id = Model.Id })" class="btn btn-sm btn-outline-primary">Edit</a>                
+                                }
+                                <form method="post" action="@Url.Action("DeletePost", "Post")" class="d-inline">
+                                    <input type="hidden" name="id" value="@Model.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this spark?')">Delete</button>
+                                </form>
                             </div>
                         }
                     </div>

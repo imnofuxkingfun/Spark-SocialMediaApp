@@ -276,3 +276,6 @@ __pycache__/
 
 #Google Keys
 /GoogleKeys.json
+
+#Storage
+/wwwroot/uploads/
