@@ -70,7 +70,8 @@ namespace Spark_SocialMediaApp.Controllers
             {
                 Text = text,
                 Media = new List<string>(),
-                AuthorId = userManager.GetUserId(User)
+                AuthorId = userManager.GetUserId(User),
+                CreatedAt = DateTime.UtcNow
             };
 
             // Handle media uploads to storage
@@ -197,7 +198,8 @@ namespace Spark_SocialMediaApp.Controllers
             {
                 AuthorId = userManager.GetUserId(User),
                 Title = title,
-                Media = new List<string?>()
+                Media = new List<string?>(),
+                CreatedAt = DateTime.UtcNow
             };
 
            

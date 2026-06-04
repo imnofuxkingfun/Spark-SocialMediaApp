@@ -54,7 +54,8 @@ namespace Spark_SocialMediaApp.Controllers
             {
                 UserSentId = followerId,
                 UserReceivedId = followedId,
-                Status = status
+                Status = status,
+                CreatedAt = DateTime.UtcNow
             };
             if(TryValidateModel(connection))
             {
@@ -119,7 +120,8 @@ namespace Spark_SocialMediaApp.Controllers
             {
                 UserSentId = blockerId,
                 UserReceivedId = blockedId,
-                Status = ConnectionStatus.Blocked
+                Status = ConnectionStatus.Blocked,
+                CreatedAt = DateTime.UtcNow
             };
             if (TryValidateModel(connection))
             {

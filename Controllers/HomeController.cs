@@ -25,6 +25,11 @@ namespace Spark_SocialMediaApp.Controllers
         }
 
         //+tag feed
+        [AllowAnonymous]
+        public IActionResult Presentation()
+        {
+            return View();
+        }
 
         public IActionResult Privacy()
         {

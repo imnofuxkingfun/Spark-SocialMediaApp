@@ -26,7 +26,7 @@ namespace Spark_SocialMediaApp.Models
 
         private bool inCloseFriendsList = false;
 
-        private DateTime createdAt = DateTime.UtcNow;
+        private DateTime createdAt;
 
         //get set
 

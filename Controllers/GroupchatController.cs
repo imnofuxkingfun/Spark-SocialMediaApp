@@ -48,7 +48,8 @@ namespace Spark_SocialMediaApp.Controllers
             string userId = userManager.GetUserId(User);
             Groupchat groupchat = new Groupchat
             {
-                Name = formGroupchat.Name
+                Name = formGroupchat.Name,
+                CreatedAt = DateTime.UtcNow
             };
             groupchat.Members = new List<GroupchatMember>
                 {
@@ -118,53 +119,6 @@ namespace Spark_SocialMediaApp.Controllers
             return Redirect($"Show/{groupchatId}");
         }
 
-        //send message
-        [HttpPost]
-        public async Task<IActionResult> SendMessage(string groupchatId, [FromForm] string text, [FromForm] string media)
-        {
-            Groupchat groupchat = db.Groupchats.Find(groupchatId);
-            if (groupchat == null || !groupchat.Members.Any(m => m.UserId == userManager.GetUserId(User)))
-            {
-                return Redirect("Index");
-            }
-            GroupchatMessage message = new GroupchatMessage
-            {
-                Groupchat = groupchat,
-                SenderId = userManager.GetUserId(User),
-                Text = text,
-                Media = media
-            };
-            db.GroupchatMessages.Add(message);
-            await db.SaveChangesAsync();
-            return Redirect($"Show/{groupchatId}");
-
-        }
-
-        //send post to groupchat
-        [HttpPost]
-        public async Task<IActionResult> SendPost(string groupchatId, [FromForm] string postId)
-        {
-            Groupchat groupchat = db.Groupchats.Find(groupchatId);
-            if (groupchat == null || !groupchat.Members.Any(m => m.UserId == userManager.GetUserId(User)))
-            {
-                return Redirect("Index");
-            }
-            Post post = db.Posts.Find(postId);
-            if (post == null)
-            {
-                return Redirect($"Show/{groupchatId}");
-            }
-            GroupchatMessage message = new GroupchatMessage
-            {
-                Groupchat = groupchat,
-                SenderId = userManager.GetUserId(User),
-                Text = null,
-                Media = null,
-                Post = post
-            };
-            db.GroupchatMessages.Add(message);
-            await db.SaveChangesAsync();
-            return Redirect($"Show/{groupchatId}");
-        }
+        
     }
 }

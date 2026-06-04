@@ -38,7 +38,8 @@ namespace Spark_SocialMediaApp.Controllers
             Comment comment = new Comment
             {
                 AuthorId = userManager.GetUserId(User),
-                PostId = postId
+                PostId = postId,
+                CreatedAt = DateTime.UtcNow
             };
             comment.Text = text;
             comment.Media = null;

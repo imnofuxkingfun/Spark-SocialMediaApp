@@ -10,7 +10,7 @@ namespace Spark_SocialMediaApp.Models
         [Required]
         private string name;
 
-        private DateTime createdAt = DateTime.UtcNow;
+        private DateTime createdAt;
 
         //get set
         public string Name
@@ -31,6 +31,10 @@ namespace Spark_SocialMediaApp.Models
             get
             {
                 return createdAt;
+            }
+            set
+            {
+                createdAt = value;
             }
         }
 

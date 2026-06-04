@@ -16,7 +16,7 @@ namespace Spark_SocialMediaApp.Models
         [Key]
         public readonly string Id = Guid.NewGuid().ToString();
 
-        private DateTime createdAt = DateTime.UtcNow;
+        private DateTime createdAt;
 
         [Required]
         private string authorId;
@@ -33,6 +33,10 @@ namespace Spark_SocialMediaApp.Models
             get
             {
                 return createdAt;
+            }
+            set
+            {
+                createdAt = value;
             }
         }
 

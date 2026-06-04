@@ -162,6 +162,7 @@ namespace Spark_SocialMediaApp.Areas.Identity.Pages.Account
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
 
                 user.DisplayName = Input.DisplayName;
+                user.JoinedAt = DateOnly.FromDateTime(DateTime.Now);
 
 
                 var result = await _userManager.CreateAsync(user, Input.Password);
