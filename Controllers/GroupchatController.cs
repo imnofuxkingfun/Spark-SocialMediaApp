@@ -41,6 +41,11 @@ namespace Spark_SocialMediaApp.Controllers
             return View(groupchat);
         }
 
+        public IActionResult Create()
+        {
+            return View();
+        }
+
         //create groupchat
         [HttpPost]
         public IActionResult Create([FromForm] Groupchat formGroupchat)
