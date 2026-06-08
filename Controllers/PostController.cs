@@ -32,6 +32,8 @@ namespace Spark_SocialMediaApp.Controllers
         {
             Post? post = db.Posts
                 .Include(c => c.Comments)
+                .Include(a => a.Author).ThenInclude(a => a.Profile)
+                .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
                 .FirstOrDefault(p => p.Id == id);
 
             if (post.GetType() == typeof(Spark))
@@ -383,6 +385,17 @@ namespace Spark_SocialMediaApp.Controllers
             }
             return RedirectToAction("Show", new { id = postId });
 
+        }
+
+
+        //saved posts
+        [Authorize]
+        public IActionResult Saved()
+        {
+            var userId = userManager.GetUserId(User);
+            var savedPosts = db.SavedPosts.All(s => s.UserId == userId);
+
+            return View(savedPosts);
         }
     }
 }
