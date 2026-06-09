@@ -28,13 +28,100 @@ namespace Spark_SocialMediaApp.Controllers
         }
 
         [AllowAnonymous]
+        public IActionResult NotAllowed()
+        {
+            return View();
+        }
+
+        [AllowAnonymous]
         public IActionResult Show(string id)
         {
+
             Post? post = db.Posts
                 .Include(c => c.Comments)
                 .Include(a => a.Author).ThenInclude(a => a.Profile)
                 .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
                 .FirstOrDefault(p => p.Id == id);
+
+            var author = db.Users.Include(u => u.FollowedBy).FirstOrDefault(u => u.Id == post.AuthorId);
+            User user = db.Users.Find(userManager.GetUserId(User));
+
+            var userFollowing = db.UserConnections
+               .Where(u => u.UserSentId == userManager.GetUserId(User))
+               .Where(c => c.Status == ConnectionStatus.Accepted)
+               .Select(c => c.UserReceivedId).ToList();
+
+            if(user!=null)
+            {
+                userFollowing.Add(user.Id);
+            }
+
+            ViewBag.Following = userFollowing;
+
+            //bool hasLiked = false;
+            //bool hasSaved = false;
+
+            //if(user!=null)
+            //{
+            //   hasLiked = db.LikedPosts
+            //    .AnyAsync(l => l.PostId == id && l.UserId == user.Id) != null;
+
+            //    hasSaved = db.SavedPosts
+            //     .AnyAsync(l => l.PostId == id && l.UserId == user.Id) != null;
+            //}
+
+            //var viewModel = new PostViewModel
+            //{
+            //    Post = post,
+            //    HasLiked = hasLiked,
+            //    HasSaved = hasSaved
+            //};
+
+
+            if (post != null && !(post.Privacy == PrivacySettings.Public) && author.Id != user.Id)
+            {
+                var isAllowed = false;
+                if (user == null)
+                {
+                    return Redirect("/Post/NotAllowed");
+                }
+                else
+                {
+
+                    //check user is in author's follower list
+                    if (post.Privacy == PrivacySettings.Private && author.FollowedBy != null)
+                    {
+                        if (author.FollowedBy.Any(f => f.UserSentId == user.Id))
+                        {
+                            isAllowed = true;
+                        }
+                    }
+                    else if (post.Privacy == PrivacySettings.CloseFriends)
+                    {
+                        if (author.FollowedBy.Any(f => f.UserSentId == user.Id && f.InCloseFriendsList == true))
+                        {
+                            isAllowed = true;
+                        }
+                    }
+                }
+
+
+                if (isAllowed)
+                {
+                    if (post.GetType() == typeof(Spark))
+                    {
+                        return View("ShowSpark", post);
+                    }
+                    else if (post.GetType() == typeof(Blog))
+                    {
+                        return View("ShowBlog", post);
+                    }
+                }
+                else
+                {
+                    return Redirect("/Post/NotAllowed");
+                }
+            }
 
             if (post.GetType() == typeof(Spark))
             {
@@ -182,7 +269,7 @@ namespace Spark_SocialMediaApp.Controllers
                     db.SaveChangesAsync();
                 }
             }
-            return RedirectToAction("Show/", new { id = id });
+            return RedirectToAction("Show", new { id = id });
         }
 
 
@@ -356,18 +443,38 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost, Authorize]
         public async Task<IActionResult> LikePost(string postId)
         {
-            var post = db.Posts.Find(postId);
-            if (post != null)
+            var post = await db.Posts.Include(p => p.LikedByUsers).FirstOrDefaultAsync(p => p.Id == postId);
+            if (post == null)
             {
-                var userId = userManager.GetUserId(User);
-                if (!db.LikedPosts.Any(l => l.PostId == postId && l.UserId == userId))
-                {
-                    db.LikedPosts.Add(new LikedPost { PostId = postId, UserId = userId });
-                    await db.SaveChangesAsync();
-                }
+                return NotFound();
             }
-            return RedirectToAction("Show", new { id = postId });
+
+            var userId = userManager.GetUserId(User);
+            var existingLike = db.LikedPosts.FirstOrDefault(l => l.PostId == postId && l.UserId == userId);
+            bool isLikedNow;
+
+            if (existingLike == null)
+            {
+                // User has not liked yet -> Add Like
+                db.LikedPosts.Add(new LikedPost { PostId = postId, UserId = userId });
+                isLikedNow = true;
+            }
+            else
+            {
+                // User already liked -> Remove Like (Toggle functionality)
+                db.LikedPosts.Remove(existingLike);
+                isLikedNow = false;
+            }
+
+            await db.SaveChangesAsync();
+
+            // Recalculate total count
+            var totalLikes = db.LikedPosts.Count(l => l.PostId == postId);
+
+            // Return JSON data instead of refreshing the page
+            return Json(new { success = true, likesCount = totalLikes, isLiked = isLikedNow });
         }
+
 
         //save post
         [HttpPost, Authorize]

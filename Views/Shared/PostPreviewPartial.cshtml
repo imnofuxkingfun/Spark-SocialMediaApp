@@ -1,0 +1,112 @@
+﻿@{
+    var post = Model.Post;
+}
+<div class="spark-card-container">
+    <!-- post preview -->
+    <div class="spark-card @(post is Blog ? "spark-blog-preview-card" : "")">
+
+        <!-- author + pfp -->
+        <img class="spark-avatar" src="@(post.Author?.Profile?.ProfilePicture ?? "/defaults/default_icon.png")"
+             alt="Profile Picture @post.Author?.UserName" />
+
+        <div class="spark-content">
+            <!-- username display name, follow button -->
+            <div class="spark-post-header">
+                <div class="spark-user-info">
+                    <span class="spark-post-name">@post.Author?.DisplayName</span>
+                    <span class="spark-post-username">@@@post.Author?.UserName?.ToLower()</span>
+                </div>
+
+                <!--follow button-->
+                @if (!Model.UserFollowing.Contains(post.AuthorId ?? string.Empty))
+                {
+                    <form asp-action="Index" asp-controller="Notification">
+                        <button type="submit" class="spark-follow-btn">Follow</button>
+                    </form>
+                }
+            </div>
+            <div style="cursor: pointer;"
+                 onclick="window.location.href='@Url.Action("Show", "Post", new { id = post.Id })'">
+                <!-- spark -->
+                @if (post is Spark spark)
+                {
+                    <!-- text -->
+                    <p class="spark-text">@spark.Text</p>
+
+                
+                    <!-- normak spark -->
+                    @if (spark.Media != null && spark.Media.Count > 0 && spark.ParentPost == null)
+                    {
+                        <div class="spark-images-container">
+                            <div class="spark-images grid-@Math.Min(4, spark.Media.Count)">
+                                @{
+                                    var countImages = 0;
+                                }
+                                @foreach (var media in spark.Media.Take(4))
+                                {
+                                    countImages++;
+                                    <img src="@media" class="grid-image-@countImages" alt="Spark media" />
+                                }
+                            </div>
+                        </div>
+
+                    }
+
+                    <!-- reblog / respark -->
+                    @if (spark.ParentPost != null)
+                    {
+                        <div class="spark-reblog">
+                            <img class="spark-reblog-avatar" src="@(spark.ParentPost.Author?.Profile?.ProfilePicture ?? "https://placehold.co")" alt="Original Avatar" />
+                            <div class="spark-reblog-content">
+                                <div class="spark-reblog-header">
+                                    <span class="spark-reblog-name">@spark.ParentPost.Author?.UserName</span>
+                                    <span class="spark-reblog-username">@@@spark.ParentPost.Author?.UserName?.ToLower()</span>
+                                </div>
+                                <p class="spark-reblog-text">
+                                    @if (spark.ParentPost is Spark parentSpark)
+                                    {
+                                        @parentSpark.Text
+                                    }
+                                    else if (spark.ParentPost is Blog parentBlog)
+                                    {
+
+                                        @parentBlog.Title
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    }
+                }
+                else if (post is Blog blog)
+                {
+                    <!-- blog preview -->
+
+                    <div class="spark-blog-gradient">
+                        <div class="spark-blog-body">
+                            <h2 class="spark-blog-title">@blog.Title</h2>
+                            <p class="spark-blog-excerpt">
+                                @(blog.Text?.Length > 200 ? blog.Text.Substring(0, 200) + "..." : blog.Text)
+                            </p>
+                        </div>
+                        <div class="spark-blog-footer">
+                            <a href="@Url.Action("Show", "Post", new { id = blog.Id })" class="spark-blog-open-link">Open Blog</a>
+                        </div>
+                    </div>
+                }
+
+                @* <!-- tags -->
+                                    @if (post.Hashtags != null)
+                                    {
+                                        <div class="spark-hashtags">@post.Hashtags</div>
+                                    } *@
+
+            </div>
+        </div>
+    </div>
+    <!-- interaction system -->
+    @if (post is Spark)
+    {
+        <partial name="PostInteractionSystemPartial" model="post" />
+    }
+
+</div>

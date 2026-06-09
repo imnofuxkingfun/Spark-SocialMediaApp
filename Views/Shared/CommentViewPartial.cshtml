@@ -1,83 +1,151 @@
 ﻿@model Post
-<!-- Comments Section -->
-<div class="card">
-    <div class="card-header">
-        <h5 class="mb-0">Comments (@(Model.Comments?.Count ?? 0))</h5>
+
+<div class="spark-comments-wrapper">
+
+    <!-- add comment -->
+    @if (User.Identity.IsAuthenticated)
+    {
+        <form method="post" action="@Url.Action("AddComment", "Comment")" class="spark-comment-form" enctype="multipart/form-data">
+            <input type="hidden" name="postId" value="@Model.Id" />
+            <textarea class="spark-comment-input" name="text" maxlength="300" rows="3" placeholder="Add a comment..."></textarea>
+            <div class="spark-comment-form-footer">
+                <label for="commentMedia" class="spark-comment-media-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                    <span id="commentMediaLabel">Attach image</span>
+                </label>
+                <input type="file" id="commentMedia" name="media" accept="image/*" style="display:none;"
+                       onchange="document.getElementById('commentMediaLabel').textContent = this.files[0]?.name ?? 'Attach image'">
+                <button type="submit" class="spark-follow-btn" style="font-size:18px; padding: 2px 24px;">Post</button>
+            </div>
+        </form>
+    }
+    else
+    {
+        <p class="spark-comment-signin">
+            <a href="/Identity/Account/Login" style="color:#A55AFC;">Sign in</a> to comment.
+        </p>
+    }
+
+    <!-- comments count -->
+    <p class="spark-comments-count">@(Model.Comments?.Count ?? 0) comment@(Model.Comments?.Count == 1 ? "" : "s")</p>
+
+    <div id="sparkLightboxComment" class="spark-lightbox" onclick="this.classList.remove('active')">
+        <img id="lightboxCommentImg" class="lightbox-img" src="" alt="Full view" />
     </div>
-    <div class="card-body">
-        <!--Add Comment-->
-        @if (User.Identity.IsAuthenticated)
-        {
-            <form method="post" action="@Url.Action("AddComment", "Comment")" class="mb-4" enctype="multipart/form-data">
-                <div class="mb-3">
-                    <textarea class="form-control" name="text" maxlength="300" rows="3" placeholder="Add a comment..."></textarea>
-                    <small class="text-muted">Max 300 characters</small>
-                </div>
-                <div class="mb-3">
-                    <label for="commentMedia" class="form-label">Add Media (up to 1 images)</label>
-                    <input type="file" class="form-control" id="commentMedia" name="media" accept="image/*">
-                </div>
-                <input type="hidden" name="postId" value="@Model.Id" />
-                <button type="submit" class="btn btn-primary btn-sm">Post Comment</button>
-            </form>
-        }
-        else
-        {
-            <p class="text-muted"><a href="/Identity/Account/Login">Sign in</a> to comment on this post.</p>
-        }
 
-        <!-- Comments List -->
-        @if (Model.Comments != null && Model.Comments.Count > 0)
+    @{
+        var commentCount = 0;
+    }
+    <!-- comments list -->
+    @if (Model.Comments != null && Model.Comments.Count > 0)
+    {
+        commentCount ++; //for images
+        @foreach (var comment in Model.Comments.OrderByDescending(c => c.CreatedAt))
         {
-            <div class="comments-list">
-                @foreach (var comment in Model.Comments.OrderByDescending(c => c.CreatedAt))
-                {
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <h6 class="card-subtitle mb-1">@comment.Author?.UserName</h6>
-                                    <small class="text-muted">@comment.CreatedAt.ToString("g")</small>
-                                </div>
-                                @if (User.Identity.IsAuthenticated && (comment.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin")))
-                                {
-                                    <div class="btn-group" role="group">
-                                        <a href="#editComment@(comment.Id)" class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse">Edit</a>
-                                        <form method="post" action="@Url.Action("DeleteComment", "Comment")" class="d-inline">
-                                            <input type="hidden" name="id" value="@comment.Id" />
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this comment?')">Delete</button>
-                                        </form>
-                                    </div>
-                                }
-                            </div>
-                            <p class="card-text mt-2">@comment.Text</p>
-                            @if (!string.IsNullOrEmpty(comment.Media))
-                            {
-                                <img src="@comment.Media" alt="Comment media" class="img-fluid" style="max-width: 100%; max-height: 200px;">
-                            }
+            var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var canEdit = User.Identity.IsAuthenticated && (comment.AuthorId == currentUserId || User.IsInRole("Admin"));
 
-                            <!-- Edit Comment Form -->
-                            @if (User.Identity.IsAuthenticated && comment.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value)
+            <div class="spark-comment">
+                <img class="spark-comment-avatar"
+                     src="@(comment.Author?.Profile?.ProfilePicture ?? "/defaults/default_icon.png")"
+                     alt="@comment.Author?.UserName" />
+
+                <div class="spark-comment-body">
+                    <div class="spark-comment-header">
+                        <div class="spark-user-info">
+                            <span class="spark-post-name" style="font-size:18px;">@comment.Author?.DisplayName</span>
+                            <span class="spark-post-username" style="font-size:16px;">@@@comment.Author?.UserName?.ToLower()</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <span class="spark-post-timestamp">@comment.CreatedAt.ToString("g")</span>
+                            @if (canEdit)
                             {
-                                <div class="collapse mt-3" id="editComment@(comment.Id)">
-                                    <form method="post" action="@Url.Action("EditComment", "Comment")" class="card card-body">
-                                        <input type="hidden" name="postId" value="@Model.Id" />
-                                        <input type="hidden" name="id" value="@comment.Id" />
-                                        <div class="mb-3">
-                                            <textarea class="form-control" name="text" maxlength="300" rows="2">@comment.Text</textarea>
-                                        </div>
-                                        <button type="submit" class="btn btn-primary btn-sm">Update Comment</button>
-                                    </form>
-                                </div>
+                                <a href="#editComment@(comment.Id)" class="spark-comment-action-btn" data-bs-toggle="collapse">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                </a>
+                                <form method="post" action="@Url.Action("DeleteComment", "Comment")" style="display:inline;">
+                                    <input type="hidden" name="id" value="@comment.Id" />
+                                    <button type="submit" class="spark-comment-action-btn spark-comment-delete-btn" onclick="return confirm('Delete this comment?')">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="3 6 5 6 21 6" />
+                                            <path d="M19 6l-1 14H6L5 6" />
+                                            <path d="M10 11v6" />
+                                            <path d="M14 11v6" />
+                                            <path d="M9 6V4h6v2" />
+                                        </svg>
+                                    </button>
+                                </form>
                             }
                         </div>
                     </div>
-                }
+
+                    <p class="spark-text" style="font-size:20px;">@comment.Text</p>
+
+                    @if (!string.IsNullOrEmpty(comment.Media))
+                    {
+                        <img src="@comment.Media" alt="Comment media" class="spark-comment-media"
+                             style="cursor: pointer;"
+                             onclick="openLightboxComment(this.src)" />
+                    }
+                    
+
+                    <!-- Edit form -->
+                    @if (User.Identity.IsAuthenticated && comment.AuthorId == currentUserId)
+                    {
+                        <div class="collapse mt-3" id="editComment@(comment.Id)">
+                            <form method="post" action="@Url.Action("EditComment", "Comment")" class="spark-comment-edit-form">
+                                <input type="hidden" name="postId" value="@Model.Id" />
+                                <input type="hidden" name="id" value="@comment.Id" />
+                                <textarea class="spark-comment-input" name="text" maxlength="300" rows="2">@comment.Text</textarea>
+                                <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+                                    <button type="submit" class="spark-follow-btn" style="font-size:18px; padding: 2px 24px;">Update</button>
+                                </div>
+                            </form>
+                        </div>
+                    }
+                </div>
             </div>
         }
-        else
-        {
-            <p class="text-muted text-center">No comments yet. Be the first to comment!</p>
-        }
-    </div>
+    }
+    else
+    {
+        <p class="spark-comment-signin" style="text-align:center;">No comments yet. Be the first!</p>
+    }
+
 </div>
+
+<script>
+    function openLightboxComment(src) {
+        document.getElementById('lightboxCommentImg').src = src;
+        document.getElementById('sparkLightboxComment').classList.add('active');
+        document.addEventListener('keydown', handleCommentKey);
+    }
+
+    function handleCommentKey(e) {
+        if (e.key === 'Escape') {
+            document.getElementById('sparkLightboxComment').classList.remove('active');
+            document.removeEventListener('keydown', handleCommentKey);
+        }
+    }
+
+    // Source - https://stackoverflow.com/a/49490014
+    // Posted by Haseeb Rehman, modified by community. See post 'Timeline' for change history
+    // Retrieved 2026-06-09, License - CC BY-SA 4.0
+
+    const uploadField = document.getElementById("commentMedia");
+
+    uploadField.onchange = function() {
+        if(this.files[0].size > 1048576) {
+           alert("Maximum file size: 1MB");
+           this.value = "";
+        }
+    };
+
+</script>

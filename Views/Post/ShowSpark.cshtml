@@ -2,75 +2,199 @@
 
 @{
     ViewData["Title"] = "Spark";
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var isOwnerOrAdmin = User.Identity.IsAuthenticated && (Model.AuthorId == currentUserId || User.IsInRole("Admin"));
+    var isOwner = User.Identity.IsAuthenticated && Model.AuthorId == currentUserId;
+    var UserFollowing = ViewBag.Following;
 }
 
-<div class="container mt-5">
+<div class="container">
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <!-- Post Content -->
-            <div class="card mb-4">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h5 class="mb-1">@Model.Author?.UserName</h5>
-                            <small class="text-muted">@Model.CreatedAt.ToString("g")</small>
-                        </div>
-                        @if (User.Identity.IsAuthenticated && (Model.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin")))
-                        {
-                            <div class="btn-group" role="group">
-                                @if (User.Identity.IsAuthenticated && (Model.AuthorId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value || User.IsInRole("Admin")))
-                                {
-                                    <a href="@Url.Action("EditSpark", "Post", new { id = Model.Id })" class="btn btn-sm btn-outline-primary">Edit</a>                
-                                }
-                                <form method="post" action="@Url.Action("DeletePost", "Post")" class="d-inline">
-                                    <input type="hidden" name="id" value="@Model.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this spark?')">Delete</button>
-                                </form>
-                            </div>
-                        }
+<div class="show-spark-wrapper">
+
+    <div class="spark-card-container">
+        <div class="spark-card">
+
+            <!-- Avatar -->
+            <img class="spark-avatar"
+                 src="@(Model.Author?.Profile?.ProfilePicture ?? "/defaults/default_icon.png")"
+                 alt="Profile picture of @Model.Author?.UserName" />
+
+            <div class="spark-content">
+
+                <!-- Header: name + actions -->
+                <div class="spark-post-header">
+                    <div class="spark-user-info">
+                        <span class="spark-post-name">@Model.Author?.DisplayName</span>
+                        <span class="spark-post-username">@@@Model.Author?.UserName?.ToLower()</span>
+                        <span class="spark-post-timestamp">@Model.CreatedAt.ToString("g") | @Model.Privacy.ToString()</span>
                     </div>
+                            <div class="spark-owner-actions">
+                            @if (!UserFollowing.Contains(Model.AuthorId ?? string.Empty))
+                            {
+                                <form asp-action="Index" asp-controller="Notification">
+                                    <button type="submit" class="spark-follow-btn">Follow</button>
+                                </form>
+                            }
+                            @if (isOwnerOrAdmin)
+                            {
+                                var canEdit = (DateTime.UtcNow - Model.CreatedAt).TotalMinutes <= 15;
+
+                               
+                                    @if (canEdit && isOwner)
+                                    {
+                                        <a href="#editSpark@(Model.Id)"
+                                           data-bs-toggle="collapse"
+                                           class="spark-edit-btn">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                            </svg>
+                                            Edit
+                                        </a>
+                                    }
+                                    <form method="post" action="@Url.Action("DeletePost", "Post")" class="spark-delete-form">
+                                        <input type="hidden" name="id" value="@Model.Id" />
+                                        <button type="submit" class="spark-delete-btn" onclick="return confirm('Delete this spark?')">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="3 6 5 6 21 6" />
+                                                <path d="M19 6l-1 14H6L5 6" />
+                                                <path d="M10 11v6" />
+                                                <path d="M14 11v6" />
+                                                <path d="M9 6V4h6v2" />
+                                            </svg>
+                                            Delete
+                                        </button>
+                                    </form>
+                                
+                            }
+                            </div>
                 </div>
-                <div class="card-body">
-                    <p class="card-text">@Model.Text</p>
-                    @if (Model.Media != null && Model.Media.Count > 0)
-                    {
-                        <div class="row g-2">
+
+                <!-- Spark text -->
+                        <p class="spark-text">@Model.Text</p>
+
+                        <div class="collapse mt-3" id="editSpark@(Model.Id)">
+                            <form method="post" action="@Url.Action("EditSpark", "Post")" class="spark-comment-edit-form">
+                                <input type="hidden" name="id" value="@Model.Id" />
+                                <textarea class="spark-comment-input" name="text" maxlength="300" rows="2">@Model.Text</textarea>
+                                <div style="display:flex; justify-content:flex-end; margin-top:8px;">
+                                    <button type="submit" class="spark-follow-btn" style="font-size:18px; padding: 2px 24px;">Update</button>
+                                </div>
+                            </form>
+                        </div>
+
+                <!-- Media grid -->
+                @if (Model.Media != null && Model.Media.Count > 0)
+                {
+                    <div class="spark-images-container">
+                        <div class="spark-images grid-@Math.Min(4, Model.Media.Count)">
+                            @{
+                                var countImages = 0;
+                            }
                             @foreach (var media in Model.Media.Take(4))
                             {
-                                <div class="col-md-6">
-                                    <img src="@media" alt="Post media" class="img-fluid" style="max-width: 100%; height: auto;">
-                                </div>
+                                countImages++;
+                                <img src="@media" class="grid-image-@countImages spark-clickable-img" alt="Spark media" style="cursor: pointer;" onclick="openLightbox(@(countImages - 1))" />
                             }
                         </div>
-                    }
-                </div>
-                <div class="card-footer bg-light">
-                    <div class="d-flex gap-3">
-                        @if (User.Identity.IsAuthenticated)
-                        {
-                            <form method="post" action="@Url.Action("LikePost", "Post")" class="d-inline">
-                                <input type="hidden" name="postId" value="@Model.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-heart"></i> Like
+
+                        <div id="sparkLightbox" class="spark-lightbox" onclick="closeLightbox(event)">
+                            <button class="lightbox-arrow arrow-left" onclick="changeImage(-1, event)">
+                                @(Model.Media.Count > 1 ? Html.Raw("&#10094;" ): "")
                                 </button>
-                            </form>
-                            <form method="post" action="@Url.Action("SavePost", "Post")" class="d-inline">
-                                <input type="hidden" name="postId" value="@Model.Id" />
-                                <button type="submit" class="btn btn-sm btn-outline-secondary">
-                                    <i class="bi bi-bookmark"></i> Save
-                                </button>
-                            </form>
-                        }
+                            <img id="lightboxImg" class="lightbox-img" src="" alt="Full view" />
+                            <button class="lightbox-arrow arrow-right" onclick="changeImage(1, event)">
+                                        @(Model.Media.Count > 1 ? Html.Raw("&#10095;") : "")
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </div>
+                }
 
-            <!--Comments Partial-->
-            <partial name="CommentViewPartial" model="Model" />
+                <!-- Respark / reblog preview -->
+                @if (Model.ParentPost != null)
+                {
+                    <div class="spark-reblog">
+                        <img class="spark-reblog-avatar"
+                             src="@(Model.ParentPost.Author?.Profile?.ProfilePicture ?? "https://placehold.co")"
+                             alt="Original author avatar" />
+                        <div class="spark-reblog-content">
+                            <div class="spark-reblog-header">
+                                <span class="spark-reblog-name">@Model.ParentPost.Author?.UserName</span>
+                                <span class="spark-reblog-username">@@@Model.ParentPost.Author?.UserName?.ToLower()</span>
+                            </div>
+                            <p class="spark-reblog-text">
+                                @if (Model.ParentPost is Spark parentSpark)
+                                {
+                                    @parentSpark.Text
+                                }
+                                else if (Model.ParentPost is Blog parentBlog)
+                                {
+                                    @parentBlog.Title
+                                }
+                            </p>
+                        </div>
+                    </div>
+                }
 
-            <div class="mt-4">
-                <a href="@Url.Action("Index", "Home")" class="btn btn-secondary">Back to Feed</a>
             </div>
         </div>
+
+        <!-- Interaction bar -->
+        <partial name="PostInteractionSystemPartial" model="Model" />
     </div>
+
+    <!-- Comments -->
+    <partial name="CommentViewPartial" model="Model" />
+
+    <!-- Back link -->
+    <div class="spark-show-back">
+        <a href="@Url.Action("Index", "Home")" class="spark-back-link">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12" />
+                <polyline points="12 19 5 12 12 5" />
+            </svg>
+            Back to Feed
+        </a>
+    </div>
+
 </div>
+</div>
+</div>
+
+
+<script>
+    const images = Array.from(document.querySelectorAll('.spark-clickable-img')).map(img => img.src);
+    let currentIndex = 0;
+    const lightbox = document.getElementById('sparkLightbox');
+    const lightboxImg = document.getElementById('lightboxImg');
+
+    function openLightbox(index) {
+        currentIndex = index;
+        lightboxImg.src = images[currentIndex];
+        lightbox.classList.add('active');
+        document.addEventListener('keydown', handleKeyPress);
+    }
+
+    function closeLightbox(e) {
+        if (e.target === lightbox || e.target.classList.contains('spark-lightbox')) {
+            lightbox.classList.remove('active');
+            document.removeEventListener('keydown', handleKeyPress);
+        }
+    }
+
+    function changeImage(direction, e) {
+        if (e) e.stopPropagation();
+        currentIndex = (currentIndex + direction + images.length) % images.length;
+        lightboxImg.src = images[currentIndex];
+    }
+
+    function handleKeyPress(e) {
+        if (e.key === 'ArrowRight') changeImage(1);
+        if (e.key === 'ArrowLeft') changeImage(-1);
+        if (e.key === 'Escape') {
+            lightbox.classList.remove('active');
+            document.removeEventListener('keydown', handleKeyPress);
+        }
+    }
+</script>

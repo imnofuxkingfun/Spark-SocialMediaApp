@@ -278,4 +278,6 @@ __pycache__/
 /GoogleKeys.json
 
 #Storage
-/wwwroot/uploads/ 
+/wwwroot/uploads/
+
+/Models/SeedData.cs
