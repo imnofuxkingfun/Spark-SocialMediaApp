@@ -104,8 +104,7 @@ namespace Spark_SocialMediaApp.Models
         public virtual UserProfile? Profile { get; set; }
 
 
-        //user pforile
-        //user settings
+        public virtual ICollection<Notification>? NotificationsReceived { get; set; }
 
 
     }

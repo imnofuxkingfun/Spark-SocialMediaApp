@@ -33,7 +33,7 @@ namespace Spark_SocialMediaApp.Controllers
 
             var userFollowing = db.UserConnections
                 .Where(u => u.UserSentId == userManager.GetUserId(User))
-                .Where(c => c.Status == ConnectionStatus.Accepted)
+                .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)
                 .Select(c => c.UserReceivedId).ToList();
 
             userFollowing.Add(userManager.GetUserId(User));
@@ -65,7 +65,7 @@ namespace Spark_SocialMediaApp.Controllers
         {
             var userFollowing = db.UserConnections
                 .Where(u => u.UserSentId == userManager.GetUserId(User))
-                .Where(c => c.Status == ConnectionStatus.Accepted)
+                .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)
                 .Select(c => c.UserReceivedId).ToList();
 
             userFollowing.Add(userManager.GetUserId(User));

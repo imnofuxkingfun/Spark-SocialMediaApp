@@ -6,7 +6,7 @@ using Spark_SocialMediaApp.Data;
 using Spark_SocialMediaApp.Models;
 using System.Net;
 using System.Text.RegularExpressions;
-
+using Microsoft.EntityFrameworkCore;
 
 namespace Spark_SocialMediaApp.Controllers
 {

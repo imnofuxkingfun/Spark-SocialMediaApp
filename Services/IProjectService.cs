@@ -3,6 +3,7 @@ using Spark_SocialMediaApp.Data;
 using Spark_SocialMediaApp.Models;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace Spark_SocialMediaApp.Services
 {
     public interface IProjectService
@@ -12,9 +13,12 @@ namespace Spark_SocialMediaApp.Services
         Task HandleImageDeleting(List<string> media);
 
         Task<PostViewModel> CreatePostViewModel(Post post, string? userId);
+
+        Task CreateNotification(string senderId, string receiverId, NotificationType type, Post? post = null, Comment? comment = null);
+        Task DeleteNotification(string senderId, string receiverId, NotificationType type, Post? post = null, Comment? comment = null);
     }
 
-    public class ProjectService: IProjectService
+    public class ProjectService : IProjectService
     {
         private readonly ApplicationDbContext db;
         private readonly IWebHostEnvironment _env;
@@ -63,8 +67,8 @@ namespace Spark_SocialMediaApp.Services
             }
             return mediaList;
         }
-    
-        
+
+
         public async Task HandleImageDeleting(List<string> media)
         {
             foreach (var mediaPath in media)
@@ -79,8 +83,8 @@ namespace Spark_SocialMediaApp.Services
                 }
             }
         }
-    
-        public async Task<PostViewModel> CreatePostViewModel (Post post, string? userId)
+
+        public async Task<PostViewModel> CreatePostViewModel(Post post, string? userId)
         {
 
             //interaction system data
@@ -120,5 +124,109 @@ namespace Spark_SocialMediaApp.Services
             };
             return viewModel;
         }
+
+        public async Task CreateNotification(string senderId, string receiverId, NotificationType type, Post? post = null, Comment? comment = null)
+        {
+            if(senderId == receiverId)
+            {
+                return;
+            }
+
+            string senderName = await db.Users.Where(u => u.Id == senderId).Select(u => u.UserName).FirstOrDefaultAsync();
+
+            //check for follow request
+            bool isPendingFollowRequest = await db.UserConnections.AnyAsync(fr => fr.UserSentId == senderId && fr.UserReceivedId == receiverId && fr.Status == ConnectionStatus.Pending);
+            if (type == NotificationType.Follow && isPendingFollowRequest)
+                type = NotificationType.FollowPendingRequest;
+
+            string text = senderName + (type == NotificationType.Like ? " liked your post." :
+                type == NotificationType.Comment ? " commented on your post." :
+                type == NotificationType.Repost ? " reposted your post." :
+                type == NotificationType.FollowPendingRequest ? " sent you a follow request" :
+                type == NotificationType.Follow ? " followed you." :
+                " interacted with your post.");
+
+            Notification notification = new Notification
+            {
+                SenderId = senderId,
+                ReceiverId = receiverId,
+                Type = type,
+                Text = text,
+                CreatedAt = DateTime.UtcNow,
+            };
+            if (type == NotificationType.Like || type == NotificationType.Repost)
+            {
+                notification.Post = post;
+            }
+            if (type == NotificationType.Comment)
+            {
+                notification.Post = post;
+                notification.Comment = comment;
+            }
+            db.Notifications.Add(notification);
+            await db.SaveChangesAsync();
+
+
+        }
+
+        public async Task DeleteNotification(string senderId, string receiverId, NotificationType type, Post? post = null, Comment? comment = null)
+        {
+
+            if (senderId == receiverId)
+            {
+                return;
+            }
+            Notification? notification;
+            if (type == NotificationType.Like || type == NotificationType.Repost)
+            {
+                notification = await db.Notifications.FirstOrDefaultAsync(n => n.SenderId == senderId && n.ReceiverId == receiverId && n.Type == type && n.Post == post);
+            }
+            else if (type == NotificationType.Comment)
+            {
+                notification = await db.Notifications.FirstOrDefaultAsync(n => n.SenderId == senderId && n.ReceiverId == receiverId && n.Type == type && n.Comment == comment);
+            }
+            else //follow or pending follow request
+            {
+                notification = await db.Notifications.FirstOrDefaultAsync(n => n.SenderId == senderId && n.ReceiverId == receiverId && n.Type == type);
+            }
+
+
+            if (notification != null)
+            {
+                db.Notifications.Remove(notification);
+                await db.SaveChangesAsync();
+            }
+        }
+
+        public async Task EditNotification(string senderId, string receiverId, NotificationType type, string text, Post? post = null, Comment? comment = null)
+        {
+            string senderName = await db.Users.Where(u => u.Id == senderId).Select(u => u.UserName).FirstOrDefaultAsync();
+            if (senderId == receiverId)
+            {
+                return;
+            }
+            Notification? notification;
+            if (type == NotificationType.Like || type == NotificationType.Repost)
+            {
+                notification = await db.Notifications.FirstOrDefaultAsync(n => n.SenderId == senderId && n.ReceiverId == receiverId && n.Type == type && n.Post == post);
+            }
+            else if (type == NotificationType.Comment)
+            {
+                notification = await db.Notifications.FirstOrDefaultAsync(n => n.SenderId == senderId && n.ReceiverId == receiverId && n.Type == type && n.Comment == comment);
+            }
+            else //follow or pending follow request
+            {
+                notification = await db.Notifications.FirstOrDefaultAsync(n => n.SenderId == senderId && n.ReceiverId == receiverId && n.Type == type);
+            }
+
+            if (notification != null)
+            {
+                notification.Text = senderName + text;
+                notification.Type = type;
+                db.Notifications.Update(notification);
+                await db.SaveChangesAsync();
+            }
+        }
     }
+
 }

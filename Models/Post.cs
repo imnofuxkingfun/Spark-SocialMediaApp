@@ -75,6 +75,6 @@ namespace Spark_SocialMediaApp.Models
 
         public virtual Post? ParentPost { get; set; } //repost system
 
-        //content tags
+        public virtual ICollection<PostTags>? Tags { get; set; }
     }
 }

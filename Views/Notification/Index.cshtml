@@ -1,6 +1,114 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    ViewData["Title"] = "Notifications";
+    var notifications = ViewBag.Notifications as List<Notification> ?? new List<Notification>();
+    var userFollowing = ViewBag.Following as List<string> ?? new List<string>();
 }
-<h2>Notificatioons</h2>
+
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="spark-post-feed">
+
+            <!--empty div to stay under top bar at the start-->
+            <div style="height:8vh"></div>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 24px;">
+                <h2>Notifications</h2>
+                <form asp-controller="Notification" asp-action="ClearNotifications">
+                    <button id="btnClearAllNotifications" class="spark-follow-btn" style="border-color: #ff4a4a; color: #ff4a4a; font-size: 16px; padding: 4px 16px;">Clear All</button>
+                </form>
+            </div>
+                <!-- notification feed feed -->
+
+                <div class="spark-posts-feed">
+                    @foreach (Notification notification in notifications.OrderByDescending(p => p.Post?.CreatedAt))
+                    {
+
+                        var post = notification.Post;
+                        Spark sparkPost = post as Spark;
+                        Blog blogPost = post as Blog;
+
+                        string mediaUrl = null;
+                        string text = null;
+                        if (sparkPost != null)
+                        {
+                            mediaUrl = sparkPost.Media[0];
+                            text = sparkPost.Text;
+                        }
+                        else if (blogPost != null)
+                        {
+                            mediaUrl = blogPost.Media[0];
+                            text = blogPost.Text;
+                        }
+
+                        <!--pfp-->
+                        <div class="spark-card-container notification-card">
+                            <img class="spark-avatar" src="@(notification.Sender?.Profile?.ProfilePicture ?? "/defaults/default_icon.png")"
+                                 alt="Profile Picture @notification.Sender?.UserName" />
+                                 <!--content-->
+                            <div class="spark-content">
+                                <div class="spark-post-header">
+                                    <div class="spark-user-info">
+                                        <span class="spark-post-name">@notification.Sender?.DisplayName</span>
+                                        <span class="spark-post-username">@@@notification.Sender?.UserName?.ToLower()</span>
+                                    </div>
+
+                                    <!-- follow back -->
+                                    @if (notification.Type == NotificationType.Follow && !userFollowing.Contains(notification.SenderId)) 
+                                    {
+                                        <form asp-action="SendFollowRequest" asp-controller="Connections" class="follow-button" data-author-id="@notification.SenderId">
+                                        <input type="hidden" value="@notification.ReceiverId" name="followedId" />
+                                            <button type="submit" class="spark-follow-btn">Follow Back</button>
+                                        </form>
+                                    }
+                                    <!--pending - respond-->
+                                    @if (notification.Type == NotificationType.FollowPendingRequest)
+                                    {
+                                        <div style="display:flex; gap:10px;">
+                                            <!-- accept -->
+                                            <form asp-action="RespondToFollowRequest" asp-controller="Connections" class="follow-button">
+                                                <input type="hidden" value="@notification.SenderId" name="senderId" />
+                                                <input type="hidden" value="true" name="accept" />
+                                                <button type="submit" class="spark-follow-btn">Accept</button>
+                                            </form>
+
+                                            <!-- reject -->
+                                            <form asp-action="RespondToFollowRequest" asp-controller="Connections" class="follow-button">
+                                                <input type="hidden" value="@notification.SenderId" name="senderId" />
+                                                <input type="hidden" value="false" name="accept" />
+                                                <button type="submit" class="spark-follow-btn">Reject</button>
+                                            </form>
+                                        </div>
+                                    }
+
+
+                                </div>
+
+                                <div class="notification-body">
+                                    <!-- notif text -->
+                                    <p class="spark-text">@notification.Text</p>
+
+                                    
+                                    <!--post details -->
+                                    @if (notification.Post != null && notification.Type == NotificationType.Like || notification.Type == NotificationType.Comment || notification.Type == NotificationType.Repost)
+                                    {
+
+                                        <p class="spark-subtext">@text</p>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- post media -->
+                            @if (post != null && (notification.Type == NotificationType.Like || notification.Type == NotificationType.Comment || notification.Type == NotificationType.Repost) && !string.IsNullOrEmpty(mediaUrl))
+                            {
+                                <div class="notification-media-preview" style="cursor:pointer;" onclick="window.location.href='@Url.Action("Show", "Post", new { id = post.Id })''">
+                                    <img src="@mediaUrl" alt="Post preview" />
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    
+                </div>
+        </div>
+    </div>
+</div>

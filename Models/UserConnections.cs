@@ -16,10 +16,10 @@ namespace Spark_SocialMediaApp.Models
         public readonly string Id = Guid.NewGuid().ToString();
 
         [Required]
-        private string userSentId; //follower
+        private string? userSentId; //follower
 
         [Required]
-        private string userReceivedId; //followed by
+        private string? userReceivedId; //followed by
 
         private ConnectionStatus status; //pending, accepted, rejected(delete) for private accounts, accepted for public,
                                //must be accepeted for close friends

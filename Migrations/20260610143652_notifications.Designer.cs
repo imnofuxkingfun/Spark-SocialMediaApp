@@ -12,8 +12,8 @@ using Spark_SocialMediaApp.Data;
 namespace Spark_SocialMediaApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260603234147_time-fix1")]
-    partial class timefix1
+    [Migration("20260610143652_notifications")]
+    partial class notifications
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -199,6 +199,9 @@ namespace Spark_SocialMediaApp.Migrations
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -227,6 +230,9 @@ namespace Spark_SocialMediaApp.Migrations
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("GroupchatId")
                         .HasColumnType("nvarchar(450)");
@@ -259,9 +265,11 @@ namespace Spark_SocialMediaApp.Migrations
             modelBuilder.Entity("Spark_SocialMediaApp.Models.LikedPost", b =>
                 {
                     b.Property<string>("UserId")
+                        .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("PostId")
+                        .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("UserId", "PostId");
@@ -269,6 +277,49 @@ namespace Spark_SocialMediaApp.Migrations
                     b.HasIndex("PostId");
 
                     b.ToTable("LikedPosts");
+                });
+
+            modelBuilder.Entity("Spark_SocialMediaApp.Models.Notification", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("CommentId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PostId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ReceiverId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("SenderId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommentId");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("ReceiverId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("Spark_SocialMediaApp.Models.Post", b =>
@@ -284,10 +335,16 @@ namespace Spark_SocialMediaApp.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Discriminator")
                         .IsRequired()
                         .HasMaxLength(5)
                         .HasColumnType("nvarchar(5)");
+
+                    b.Property<string>("ParentPostId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("Privacy")
                         .HasColumnType("int");
@@ -295,6 +352,8 @@ namespace Spark_SocialMediaApp.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AuthorId");
+
+                    b.HasIndex("ParentPostId");
 
                     b.ToTable("Posts");
 
@@ -306,9 +365,11 @@ namespace Spark_SocialMediaApp.Migrations
             modelBuilder.Entity("Spark_SocialMediaApp.Models.SavedPost", b =>
                 {
                     b.Property<string>("UserId")
+                        .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("PostId")
+                        .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("UserId", "PostId");
@@ -343,6 +404,9 @@ namespace Spark_SocialMediaApp.Migrations
 
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<DateOnly?>("JoinedAt")
+                        .HasColumnType("date");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
@@ -562,7 +626,7 @@ namespace Spark_SocialMediaApp.Migrations
                     b.HasOne("Spark_SocialMediaApp.Models.User", "Author")
                         .WithMany("Comments")
                         .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.NoAction);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("Spark_SocialMediaApp.Models.Post", "Post")
                         .WithMany("Comments")
@@ -597,7 +661,8 @@ namespace Spark_SocialMediaApp.Migrations
                 {
                     b.HasOne("Spark_SocialMediaApp.Models.Groupchat", "Groupchat")
                         .WithMany("Messages")
-                        .HasForeignKey("GroupchatId");
+                        .HasForeignKey("GroupchatId")
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("Spark_SocialMediaApp.Models.Post", "Post")
                         .WithMany()
@@ -620,7 +685,7 @@ namespace Spark_SocialMediaApp.Migrations
                     b.HasOne("Spark_SocialMediaApp.Models.Post", "Post")
                         .WithMany("LikedByUsers")
                         .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Spark_SocialMediaApp.Models.User", "User")
@@ -634,6 +699,37 @@ namespace Spark_SocialMediaApp.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Spark_SocialMediaApp.Models.Notification", b =>
+                {
+                    b.HasOne("Spark_SocialMediaApp.Models.Comment", "Comment")
+                        .WithMany()
+                        .HasForeignKey("CommentId");
+
+                    b.HasOne("Spark_SocialMediaApp.Models.Post", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId");
+
+                    b.HasOne("Spark_SocialMediaApp.Models.User", "Receiver")
+                        .WithMany("NotificationsReceived")
+                        .HasForeignKey("ReceiverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Spark_SocialMediaApp.Models.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Comment");
+
+                    b.Navigation("Post");
+
+                    b.Navigation("Receiver");
+
+                    b.Navigation("Sender");
+                });
+
             modelBuilder.Entity("Spark_SocialMediaApp.Models.Post", b =>
                 {
                     b.HasOne("Spark_SocialMediaApp.Models.User", "Author")
@@ -642,7 +738,13 @@ namespace Spark_SocialMediaApp.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Spark_SocialMediaApp.Models.Post", "ParentPost")
+                        .WithMany()
+                        .HasForeignKey("ParentPostId");
+
                     b.Navigation("Author");
+
+                    b.Navigation("ParentPost");
                 });
 
             modelBuilder.Entity("Spark_SocialMediaApp.Models.SavedPost", b =>
@@ -650,7 +752,7 @@ namespace Spark_SocialMediaApp.Migrations
                     b.HasOne("Spark_SocialMediaApp.Models.Post", "Post")
                         .WithMany("SavedByUsers")
                         .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.NoAction)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Spark_SocialMediaApp.Models.User", "User")
@@ -736,6 +838,8 @@ namespace Spark_SocialMediaApp.Migrations
                     b.Navigation("Groupchats");
 
                     b.Navigation("LikedPosts");
+
+                    b.Navigation("NotificationsReceived");
 
                     b.Navigation("Profile");
 

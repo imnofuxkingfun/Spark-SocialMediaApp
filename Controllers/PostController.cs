@@ -439,18 +439,25 @@ namespace Spark_SocialMediaApp.Controllers
             var userId = userManager.GetUserId(User);
             var existingLike = db.LikedPosts.FirstOrDefault(l => l.PostId == postId && l.UserId == userId);
             bool isLikedNow;
-
+            ProjectService projectService = new ProjectService(db, _env);
             if (existingLike == null)
             {
                 // no like -> add like
                 db.LikedPosts.Add(new LikedPost { PostId = postId, UserId = userId });
                 isLikedNow = true;
+
+                //send notification
+                
+                await projectService.CreateNotification(userId, post.AuthorId, NotificationType.Like, post);
             }
             else
             {
                 // -> remove like
                 db.LikedPosts.Remove(existingLike);
                 isLikedNow = false;
+
+                //remove notification
+                await projectService.DeleteNotification(userId, post.AuthorId, NotificationType.Like, post);
             }
 
             await db.SaveChangesAsync();
@@ -524,8 +531,8 @@ namespace Spark_SocialMediaApp.Controllers
             var userId = userManager.GetUserId(User);
             var existingRepost= db.Posts.FirstOrDefault(l => l.AuthorId == userId && l.ParentPost == post);
             //!!! tba text media privacy settings reqoutes and content filters
-
-            if(existingRepost == null)
+            ProjectService projectService = new ProjectService(db, _env);
+            if (existingRepost == null)
             {
                 //no repost -> we make repost
                 var privacy = db.UserSettings.Find(userId).PrivacyPublic ? PrivacySettings.Public : PrivacySettings.Private;
@@ -540,9 +547,17 @@ namespace Spark_SocialMediaApp.Controllers
                     Privacy = privacy,
                     ContentFilters = post.ContentFilters
                 });
-                
+
+                //send notification !!!check privacy
+                await projectService.CreateNotification(userId, post.AuthorId, NotificationType.Repost, post);
+
             }
             //delete must be manual
+            else
+            {
+                //delete notification
+                await projectService.CreateNotification(userId, post.AuthorId, NotificationType.Repost, post);
+            }
             await db.SaveChangesAsync();
             var isRepostedNow = true;
             // recalculate

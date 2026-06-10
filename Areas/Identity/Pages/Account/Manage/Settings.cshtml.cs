@@ -40,22 +40,8 @@ public class SettingsModel : PageModel
     {
         logger.LogInformation("UpdateSettings called");
 
-        logger.LogInformation($"All form keys: {string.Join(", ", Request.Form.Keys)}");
-        foreach (var key in Request.Form.Keys.Where(k => k.Contains("ContentFilters")))
-        {
-            var allValues = Request.Form[key];
-            logger.LogInformation($"Raw form [{key}]: '{allValues}'");
-        }
-
         if (!ModelState.IsValid)
         {
-            foreach (var modelState in ModelState.Values)
-            {
-                foreach (var error in modelState.Errors)
-                {
-                    logger.LogError($"ModelState Error: {error.ErrorMessage}");
-                }
-            }
             OnGet();
             return Page();
         }
@@ -63,27 +49,36 @@ public class SettingsModel : PageModel
         var dbSettings = db.UserSettings.Find(userManager.GetUserId(User));
         if (dbSettings != null)
         {
+            //logger.LogInformation($"All form keys: {string.Join(", ", Request.Form.Keys)}");
+            //foreach (var key in Request.Form.Keys.Where(k => k.Contains("ContentFilters")))
+            //{
+            //    var allValues = Request.Form[key];
+            //    logger.LogInformation($"Raw form [{key}]: '{allValues}'");
+            //}
+
             dbSettings.PrivacyPublic = Settings.PrivacyPublic;
-            dbSettings.BaseColor = Settings.BaseColor;
-            dbSettings.AccentColor = Settings.AccentColor;
 
-            var filterKeys = Request.Form.Keys
-                .Where(k => k.StartsWith("ContentFilters["))
-                .Select(k => k.Split('[', ']')[1])
-                .Distinct()
-                .ToList(); 
+            int index = 0;
 
-            logger.LogInformation($"Filter keys found: {string.Join(", ", filterKeys)}");
-
-            foreach (var filterName in filterKeys)
+            while (Request.Form.ContainsKey($"FormFilters[{index}].Key"))
             {
-                var value = Request.Form[$"ContentFilters[{filterName}]"].ToString().Split(',')[0];
-                bool isChecked = value == "true";
-                logger.LogInformation($"Filter {filterName}: {isChecked}");
+                string filterName = Request.Form[$"FormFilters[{index}].Key"].ToString();
+                string rawValue = Request.Form[$"FormFilters[{index}].Value"].ToString();
+
+                bool isChecked = rawValue.Split(',')[0] == "true";
+
+                logger.LogInformation($"Updating Filter - {filterName}: {isChecked}");
+
                 if (dbSettings.ContentFilters.ContainsKey(filterName))
                 {
                     dbSettings.ContentFilters[filterName] = isChecked;
                 }
+                else
+                {
+                    dbSettings.ContentFilters.Add(filterName, isChecked);
+                }
+
+                index++;
             }
 
             db.UserSettings.Update(dbSettings);
@@ -91,6 +86,8 @@ public class SettingsModel : PageModel
             logger.LogInformation("Settings updated successfully");
         }
 
-        return RedirectToPage();
+        return Redirect("/Identity/Account/Manage/Settings");
     }
+
+
 }

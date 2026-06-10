@@ -6,28 +6,42 @@
     ViewData["ActivePage"] = ManageNavPages.Settings;
 }
 
-<form asp-controller="Settings" asp-action="UpdateSettings" method="post">
+<form id="update-settings-form" method="post">
     <div class="mb-3">
         <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="PrivacyPublic" name="Settings.PrivacyPublic" value="true" @(Model.Settings.PrivacyPublic ? "checked" : "")>
-            <input type="hidden" name="PrivacyPublic" value="false">
+            <input asp-for="Settings.PrivacyPublic" class="form-check-input" id="PrivacyPublic" />
+            <input type="hidden" asp-for="Settings.UserId" />
             <label class="form-check-label" for="PrivacyPublic">Public Profile</label>
         </div>
     </div>
 
     <h3>Content Filters</h3>
 
-    @foreach (var filter in Model.Settings.ContentFilters)
-    {
-        <div class="mb-3">
-            <div class="form-check">
-                <input type="hidden" name="ContentFilters[@filter.Key]" value="false">
-                <input type="checkbox" class="form-check-input" id="ContentFilters_@filter.Key" name="ContentFilters[@filter.Key]" value="true" @(filter.Value ? "checked" : "")>
-                <label class="form-check-label" for="ContentFilters_@filter.Key">@filter.Key</label>
-            </div>
-        </div>
+    @{
+        var filterKeys = Model.Settings.ContentFilters.Keys.ToList();
     }
-    <input type="hidden" name="UserId" value="UserId">
+
+    @for (int i = 0; i < filterKeys.Count; i++)
+{
+    var key = filterKeys[i];
+    <div class="mb-3">
+        <div class="form-check">
+            <input type="hidden" name="FormFilters[@i].Key" value="@key" />
+            
+            <input type="checkbox" 
+                   class="form-check-input" 
+                   id="ContentFilters_@key" 
+                   name="FormFilters[@i].Value" 
+                   value="true" 
+                   @(Model.Settings.ContentFilters[key] ? "checked" : "") />
+                   
+            <input type="hidden" name="FormFilters[@i].Value" value="false" />
+
+            <label class="form-check-label" for="ContentFilters_@key">@key</label>
+        </div>
+    </div>
+}
+
 
     <button type="submit" class="btn btn-primary">Apply</button>
 </form>

@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Spark_SocialMediaApp.Data;
 using Spark_SocialMediaApp.Models;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Authorization;
+using Spark_SocialMediaApp.Services;
 
 namespace Spark_SocialMediaApp.Controllers
 {
@@ -34,8 +35,9 @@ namespace Spark_SocialMediaApp.Controllers
 
         //follower send request to followed
         [HttpPost]
-        public IActionResult SendFollowRequest(string followedId)
+        public async Task<IActionResult> SendFollowRequest(string followedId)
         {
+            logger.LogInformation(followedId + "!!!!!");
             string followerId = userManager.GetUserId(User);
             if (followerId == followedId)
             {
@@ -57,38 +59,58 @@ namespace Spark_SocialMediaApp.Controllers
                 Status = status,
                 CreatedAt = DateTime.UtcNow
             };
-            if(TryValidateModel(connection))
+            if (TryValidateModel(connection))
             {
                 db.UserConnections.Add(connection);
-                db.SaveChangesAsync();
-            }
-            return Redirect("/Home/Index");
+                await db.SaveChangesAsync();
 
+                //send notification to followed user
+                ProjectService projectService = new ProjectService(db, HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>());
+                await projectService.CreateNotification(followerId, followedId, NotificationType.Follow);
+            }
+
+            return Redirect("/Notification/Index");
         }
 
         //followed accepts/rejects request from follower
         [HttpPost]
-        public IActionResult RespondToFollowRequest(string connectionId, bool accept)
+        public async Task<IActionResult> RespondToFollowRequest(string senderId, bool accept)
         {
-            var connection = db.UserConnections.Find(connectionId);
-            if (connection != null && connection.UserReceivedId == userManager.GetUserId(User) && connection.Status == ConnectionStatus.Pending)
+            logger.LogWarning("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!respond entered");
+            var receiverId = userManager.GetUserId(User);
+            var connection = db.UserConnections.Where(c => c.UserSentId == senderId && c.UserReceivedId == receiverId && c.Status == ConnectionStatus.Pending).FirstOrDefault();
+            string status = "Pending";
+            if (connection != null)
             {
                 connection.Status = accept ? ConnectionStatus.Accepted : ConnectionStatus.Rejected;
+                status = connection.Status.ToString();
+                ProjectService projectService = new ProjectService(db, HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>());
 
                 if (connection.Status == ConnectionStatus.Rejected)
                 {
                     db.UserConnections.Remove(connection);
+                    //delete notification
+                    projectService.DeleteNotification(connection.UserSentId, connection.UserReceivedId, NotificationType.Follow);
+                    status = "Rejected";
                 }
-                db.UserConnections.Update(connection);
-                db.SaveChangesAsync();
+                else
+                {
+                    db.UserConnections.Update(connection);
+
+                    //modify notification text
+                    projectService.EditNotification(connection.UserSentId, connection.UserReceivedId, NotificationType.Follow, " followed you.");
+                    status = "Accepted";
+                }
+
+                await db.SaveChangesAsync();
             }
-            return Redirect("/Home/Index");
+            return Redirect("/Notification/Index");
 
         }
 
         //follower unfollows followed
         [HttpPost]
-        public IActionResult Unfollow(string followedId)
+        public async Task<IActionResult> Unfollow(string followedId)
         {
             string followerId = userManager.GetUserId(User);
             var connection = db.UserConnections.FirstOrDefault(c => c.UserSentId == followerId && c.UserReceivedId == followedId);
@@ -97,7 +119,7 @@ namespace Spark_SocialMediaApp.Controllers
                 db.UserConnections.Remove(connection);
                 db.SaveChangesAsync();
             }
-            return Redirect("/Home/Index");
+            return Json(new { success = true });
         }
 
         //block user

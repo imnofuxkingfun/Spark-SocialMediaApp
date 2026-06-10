@@ -61,6 +61,10 @@ namespace Spark_SocialMediaApp.Controllers
             {
                 db.Comments.Add(comment);
                 await db.SaveChangesAsync();
+
+                //send notification to post author
+                ProjectService projectService = new ProjectService(db, HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>());
+                await projectService.CreateNotification(comment.AuthorId, db.Posts.Find(postId).AuthorId, NotificationType.Comment, db.Posts.Find(postId), comment);
             }
             return Redirect("/Post/Show/" + postId);
         }
@@ -95,18 +99,23 @@ namespace Spark_SocialMediaApp.Controllers
         {
             var comment = db.Comments.Find(id);
 
+            ProjectService projectService = new ProjectService(db, HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>());
 
             if (comment != null &&(comment.AuthorId==userManager.GetUserId(User) || User.IsInRole("Admin")))
             {
                 if(comment.Media != null)
                 {
                     //delete media from storage
-                    ProjectService projectService = new ProjectService(db, HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>());
                     projectService.HandleImageDeleting(new List<string> { comment.Media });
                 }
 
                 db.Comments.Remove(comment);
                 await db.SaveChangesAsync();
+
+                //delete notification
+
+                await projectService.DeleteNotification(comment.AuthorId, db.Posts.Find(comment.PostId).AuthorId, NotificationType.Comment, db.Posts.Find(comment.PostId), comment);
+
             }
             return Redirect("/Post/Show/" + comment.PostId);
 

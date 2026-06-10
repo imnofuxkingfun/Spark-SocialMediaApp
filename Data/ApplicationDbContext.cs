@@ -25,11 +25,6 @@ namespace Spark_SocialMediaApp.Data
                 .HasForeignKey(p => p.AuthorId)
                 .OnDelete(DeleteBehavior.Cascade); //delete associated spark / blog
 
-            modelBuilder.Entity<Post>()
-                .HasMany(c => c.Comments)
-                .WithOne(p => p.Post)
-                .OnDelete(DeleteBehavior.Cascade); //delete associated comments when post is deleted)
-
             modelBuilder.Entity<Spark>();
             modelBuilder.Entity<Blog>();
 
@@ -41,13 +36,14 @@ namespace Spark_SocialMediaApp.Data
                 .HasOne(lp => lp.User)
                 .WithMany(u => u.LikedPosts)
                 .HasForeignKey(lp => lp.UserId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.NoAction); //delete likes
 
             modelBuilder.Entity<LikedPost>()
                 .HasOne(lp => lp.Post)
                 .WithMany(p => p.LikedByUsers)
                 .HasForeignKey(lp => lp.PostId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Cascade); 
+
 
 
             //saved posts
@@ -64,8 +60,19 @@ namespace Spark_SocialMediaApp.Data
                 .HasOne(lp => lp.Post)
                 .WithMany(p => p.SavedByUsers)
                 .HasForeignKey(lp => lp.PostId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Cascade); //delete saves
 
+            //key fix
+            modelBuilder.Entity<LikedPost>(entity =>
+            {
+                entity.Property(lp => lp.UserId).HasMaxLength(450);
+                entity.Property(lp => lp.PostId).HasMaxLength(450);
+            });
+            modelBuilder.Entity<SavedPost>(entity =>
+            {
+                entity.Property(lp => lp.UserId).HasMaxLength(450);
+                entity.Property(lp => lp.PostId).HasMaxLength(450);
+            });
 
             //groupchat members
 
@@ -76,14 +83,14 @@ namespace Spark_SocialMediaApp.Data
                 .HasOne(lp => lp.User)
                 .WithMany(u => u.Groupchats)
                 .HasForeignKey(lp => lp.UserId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.NoAction); //dont delete gc on user delete
 
 
             modelBuilder.Entity<GroupchatMember>()
                 .HasOne(lp => lp.Groupchat)
                 .WithMany(p => p.Members)
                 .HasForeignKey(lp => lp.GroupchatId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.NoAction); //dont delete users on gc delete
 
             //user connections 
             modelBuilder.Entity<UserConnections>()
@@ -114,6 +121,11 @@ namespace Spark_SocialMediaApp.Data
                 .HasForeignKey(m => m.SenderId)
                 .OnDelete(DeleteBehavior.NoAction);
 
+            modelBuilder.Entity<GroupchatMessage>()
+                .HasOne(g => g.Groupchat)
+                .WithMany(g => g.Messages)
+                .OnDelete(DeleteBehavior.Cascade); //delete messages on gc delete
+
             modelBuilder.Entity<Comment>()
                 .HasKey(c => c.Id);
 
@@ -121,7 +133,7 @@ namespace Spark_SocialMediaApp.Data
                 .HasOne(c => c.Author)
                 .WithMany(u => u.Comments)
                 .HasForeignKey(c => c.AuthorId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.Post)
@@ -153,6 +165,44 @@ namespace Spark_SocialMediaApp.Data
                           .ToDictionary(kv => kv[0], kv => bool.Parse(kv[1]))
                 );
 
+            //notifications
+            modelBuilder.Entity<Notification>()
+                .HasKey(n => n.Id);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Receiver)
+                .WithMany(u => u.NotificationsReceived)
+                .HasForeignKey(n => n.ReceiverId)
+                .OnDelete(DeleteBehavior.Cascade); //delete notifications on user delete
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Sender)
+                .WithMany()
+                .HasForeignKey(n => n.SenderId)
+                .OnDelete(DeleteBehavior.NoAction); //dont delete notifications on sender delete
+
+
+            //tags
+            modelBuilder.Entity<PostTags>()
+                .HasKey(pt => new { pt.PostId, pt.TagId });
+
+            modelBuilder.Entity<PostTags>()
+                .HasOne(pt => pt.Post)
+                .WithMany(p => p.Tags)
+                .HasForeignKey(pt => pt.PostId)
+                .OnDelete(DeleteBehavior.Cascade); //delete tags on post delete
+
+            modelBuilder.Entity<PostTags>()
+                .HasOne(pt => pt.Tag)
+                .WithMany(t => t.Posts)
+                .HasForeignKey(pt => pt.TagId)
+                .OnDelete(DeleteBehavior.Restrict); 
+
+            modelBuilder.Entity<PostTags>(entity =>
+            {
+                entity.Property(lp => lp.TagId).HasMaxLength(450);
+                entity.Property(lp => lp.PostId).HasMaxLength(450);
+            });
 
         }
 
@@ -175,6 +225,8 @@ namespace Spark_SocialMediaApp.Data
         public DbSet<LikedPost> LikedPosts { get; set; }
         public DbSet<SavedPost> SavedPosts { get; set; }
         public DbSet<Comment> Comments { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<PostTags> PostTags { get; set; }
     }
 
 }
