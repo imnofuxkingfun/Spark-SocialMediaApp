@@ -1,64 +1,131 @@
-﻿@{
-    var post = Model;
-    var hasLiked = false;
+﻿@model PostViewModel
+@{
+    var post = Model.Post;
 }
 <div class="spark-actions">
-    <!-- reblog -->
-    <form method="post" asp-controller="Post" asp-action="Repost">
-    <button type="submit" class="spark-action-btn" aria-label="Retweet">
-        <svg width="37" height="36" viewBox="0 0 37 36" fill="currentColor"><path d="M36.2427 7.46136L28.6957 14.9227L27.2033 13.4262L32.1707 8.51522H6.39576V16.9461H4.26384V6.40749H32.1707L27.2033 1.49649L28.6957 0L36.2427 7.46136ZM29.8469 27.4848V19.0539H31.9788V29.5925H4.07197L9.03934 34.5035L7.547 36L0 28.5386L7.547 21.0773L9.03934 22.5738L4.07197 27.4848H29.8469Z" /></svg>
-        <span class="spark-action-count">@(post.Comments?.Count ?? 0)</span>
-    </button>
+    <!--comment-->
+    <form asp-action="Show" asp-controller="Post">
+        <input type="hidden" value="@post.Id" name="id" />
+        <button type="submit" class="spark-action-btn" aria-label="Comments">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M5 3h13a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-4.59l-3.7 3.71c-.18.18-.43.29-.71.29a1 1 0 0 1-1-1v-3H5a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3m13 1H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h4v4l4-4h5a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2" />
+        </svg>
+            <span class="spark-action-count">@Model.CommentCount</span>
+        </button>
     </form>
 
-    <!-- Modified Form -->
+    <!-- reblog -->
+    <form method="post" asp-controller="Post" asp-action="Repost" class="repost-form" data-post-id="@post.Id">
+        <button type="submit" class="spark-action-btn" aria-label="Retweet">
+            <svg class="repost-icon" width="37" height="36" viewBox="0 0 37 36" fill="@(Model.HasReposted == true ? "var(--spark-accent)" : "currentColor")">
+                <path d="M36.2427 7.46136L28.6957 14.9227L27.2033 13.4262L32.1707 8.51522H6.39576V16.9461H4.26384V6.40749H32.1707L27.2033 1.49649L28.6957 0L36.2427 7.46136ZM29.8469 27.4848V19.0539H31.9788V29.5925H4.07197L9.03934 34.5035L7.547 36L0 28.5386L7.547 21.0773L9.03934 22.5738L4.07197 27.4848H29.8469Z" />
+            </svg>
+            <span class="spark-action-count repost-count">
+                @if (Model.RepostCount >= 1000000)
+                {
+                    <text>@((Model.RepostCount / 1000000.0).ToString())M</text>
+                }
+                else if (Model.RepostCount >= 1000)
+                {
+                    <text>@((Model.RepostCount / 1000.0).ToString())K</text>
+                }
+                else
+                {
+                    @Model.RepostCount
+                }
+            </span>
+
+        </button>
+    </form>
+
+    <!-- like -->
     <form method="post" asp-controller="Post" asp-action="LikePost" class="like-form" data-post-id="@post.Id">
         <button type="submit" class="spark-action-btn" aria-label="Like">
-            <!-- Added class 'like-icon' and conditional fill color based on user status -->
-            <svg class="like-icon" width="38" height="32" viewBox="0 0 38 32" fill="@(hasLiked ? "currentColor" : "none")" stroke="currentColor" stroke-width="2.66">
+            <svg class="like-icon" width="38" height="32" viewBox="0 0 38 32" fill="@(Model.HasLiked == true ? "var(--spark-accent)" : "none")" stroke="@(Model.HasLiked == true ? "var(--spark-accent)" : "currentColor")" stroke-width="2.66">
                 <path d="M18.5357 4.79586C14.7377 1.03261 7.77383 -0.118232 3.97339 3.64502C0.177779 7.40828 0.740002 12.4743 3.97339 16.8843C7.20678 21.2943 12.2861 25.2578 18.5357 30.1144C24.7853 25.2578 29.8622 21.2943 33.098 16.8843C36.3314 12.4743 36.8936 7.40828 33.098 3.64502C29.2976 -0.118232 22.3337 1.03261 18.5357 4.79586Z" />
             </svg>
-            <!-- Added class 'like-count' -->
-            <span class="spark-action-count like-count">@(post.LikedByUsers?.Count ?? 0)</span>
+            <span class="spark-action-count like-count">
+                @if (Model.LikeCount >= 1000000)
+                {
+                    <text>@((Model.LikeCount / 1000000.0).ToString())M</text>
+                }
+                else if (Model.LikeCount >= 1000)
+                {
+                    <text>@((Model.LikeCount / 1000.0).ToString())K</text>
+                }
+                else
+                {
+                    @Model.LikeCount
+                }
+            </span>
         </button>
     </form>
 
     <!-- save -->
-    <form method="post" asp-controller="Post" asp-action="SavePost">
-    <button class="spark-action-btn" aria-label="Favorite">
-        <svg width="35" height="35" viewBox="0 0 35 35" fill="none" stroke="currentColor" stroke-width="2.66"><path d="M17.2024 2.86716C17.4117 2.86716 17.4748 3.00765 17.5006 3.06786L21.1332 11.047L21.5977 12.0677L22.7072 12.2254L31.2455 13.4439C31.3087 13.4502 31.3685 13.4755 31.4171 13.5165C31.4657 13.5574 31.5008 13.6121 31.5178 13.6733C31.5399 13.7351 31.5438 13.802 31.5291 13.8661C31.5143 13.9301 31.4816 13.9885 31.4347 14.0345L25.1213 20.4167L24.3788 21.165L24.5594 22.2029L26.0933 31.1253C26.1143 31.2362 26.0923 31.3298 26.0273 31.4063C25.995 31.4447 25.9552 31.4762 25.9104 31.4989C25.8655 31.5216 25.8166 31.5349 25.7664 31.5382C25.7105 31.5386 25.6557 31.5227 25.6087 31.4923L18.2174 27.2805L17.2024 26.7043L16.1874 27.2805L8.79319 31.4923C8.74704 31.5221 8.6933 31.538 8.63836 31.5382C8.58823 31.5349 8.53928 31.5216 8.49444 31.4989C8.4496 31.4762 8.40981 31.4447 8.37746 31.4063C8.31247 31.3298 8.28953 31.2362 8.30865 31.1253L9.84541 22.2029L10.026 21.165L9.28346 20.4167L2.9701 14.0345C2.9232 13.9885 2.89045 13.9301 2.87572 13.8661C2.86098 13.802 2.86488 13.7351 2.88696 13.6733C2.90378 13.6125 2.93846 13.5581 2.98651 13.5172C3.03455 13.4763 3.09375 13.4508 3.15646 13.4439L11.7004 12.2254L12.8071 12.0677L13.2716 11.047L16.9042 3.05926C16.93 3.01052 16.9931 2.86716 17.2024 2.86716Z" /></svg>
-    </button>
+    <form method="post" asp-controller="Post" asp-action="SavePost" class="save-form" data-post-id="@post.Id">
+        <button type="submit" class="spark-action-btn" aria-label="Favorite">
+            <svg class="save-icon" width="35" height="35" viewBox="0 0 35 35" fill="@(Model.HasSaved == true ? "var(--spark-accent)" : "none")" stroke="@(Model.HasSaved == true ? "var(--spark-accent)" : "currentColor")" stroke-width="2.66">
+                <path d="M17.2024 2.86716C17.4117 2.86716 17.4748 3.00765 17.5006 3.06786L21.1332 11.047L21.5977 12.0677L22.7072 12.2254L31.2455 13.4439C31.3087 13.4502 31.3685 13.4755 31.4171 13.5165C31.4657 13.5574 31.5008 13.6121 31.5178 13.6733C31.5399 13.7351 31.5438 13.802 31.5291 13.8661C31.5143 13.9301 31.4816 13.9885 31.4347 14.0345L25.1213 20.4167L24.3788 21.165L24.5594 22.2029L26.0933 31.1253C26.1143 31.2362 26.0923 31.3298 26.0273 31.4063C25.995 31.4447 25.9552 31.4762 25.9104 31.4989C25.8655 31.5216 25.8166 31.5349 25.7664 31.5382C25.7105 31.5386 25.6557 31.5227 25.6087 31.4923L18.2174 27.2805L17.2024 26.7043L16.1874 27.2805L8.79319 31.4923C8.74704 31.5221 8.6933 31.538 8.63836 31.5382C8.58823 31.5349 8.53928 31.5216 8.49444 31.4989C8.4496 31.4762 8.40981 31.4447 8.37746 31.4063C8.31247 31.3298 8.28953 31.2362 8.30865 31.1253L9.84541 22.2029L10.026 21.165L9.28346 20.4167L2.9701 14.0345C2.9232 13.9885 2.89045 13.9301 2.87572 13.8661C2.86098 13.802 2.86488 13.7351 2.88696 13.6733C2.90378 13.6125 2.93846 13.5581 2.98651 13.5172C3.03455 13.4763 3.09375 13.4508 3.15646 13.4439L11.7004 12.2254L12.8071 12.0677L13.2716 11.047L16.9042 3.05926C16.93 3.01052 16.9931 2.86716 17.2024 2.86716Z" />
+            </svg>
+            <span class="spark-action-count save-count">
+                @if (1500 >= 1000000)
+                {
+                    <text>@((1500 / 1000000.0).ToString())M</text>
+                }
+                else if (1500 >= 1000)
+                {
+                    <text>@((1500 / 1000.0).ToString())K</text>
+                }
+                else
+                {
+                    <text>1500</text>
+                }
+            </span>
+        </button>
     </form>
 
     <!-- share -->
-    <form method="post" asp-controller="Post" asp-action="Share">
-    <button class="spark-action-btn" aria-label="Share">
+    <button class="spark-action-btn" aria-label="Share" onclick="copyLink('@post.Id')" popovertarget="shareLink" popovertargetaction="show">
         <svg width="35" height="36" viewBox="0 0 35 36" fill="none" stroke="currentColor" stroke-width="2.66">
             <path d="M23.4283 9.43654C24.2212 10.57 25.4419 11.349 26.822 11.6021C28.202 11.8551 29.6283 11.5615 30.787 10.7859C31.9458 10.0103 32.7421 8.81614 33.0008 7.46618C33.2595 6.11622 32.9594 4.72102 32.1665 3.58752C31.3736 2.45401 30.1528 1.67505 28.7728 1.42199C27.3927 1.16894 25.9665 1.46251 24.8077 2.23814C23.6489 3.01377 22.8526 4.20791 22.5939 5.55788C22.3352 6.90784 22.6354 8.30304 23.4283 9.43654ZM23.4283 9.43654L12.9263 16.4661C12.1356 15.3366 10.9857 14.4941 9.65521 14.0695C8.3247 13.6449 6.8881 13.6621 5.56859 14.1183C4.24907 14.5745 3.12051 15.4442 2.35823 16.5923C1.59596 17.7404 1.24263 19.1027 1.35316 20.4674C1.46368 21.8321 2.03186 23.1229 2.96944 24.1393C3.90701 25.1557 5.16148 25.8408 6.53797 26.088C7.91446 26.3353 9.3359 26.131 10.5815 25.5068C11.827 24.8826 12.827 23.8735 13.426 22.6362M12.9242 16.4641C13.6229 17.4644 14.0337 18.6719 14.0337 19.9747C14.0337 20.9275 13.8156 21.8284 13.4239 22.6362L23.0111 27.0789M23.0111 27.0789C22.7135 27.6936 22.5425 28.3596 22.508 29.039C22.4735 29.7183 22.5761 30.3976 22.81 31.0382C23.0438 31.6787 23.4044 32.2679 23.871 32.7722C24.3377 33.2764 24.9013 33.6858 25.5297 33.977C26.1581 34.2681 26.839 34.4354 27.5334 34.4691C28.2279 34.5029 28.9224 34.4025 29.5772 34.1738C30.232 33.945 30.8343 33.5923 31.3498 33.1358C31.8653 32.6793 32.2838 32.128 32.5815 31.5133C33.1829 30.2718 33.2555 28.8475 32.7834 27.5537C32.3113 26.2599 31.3331 25.2025 30.064 24.6142C28.7949 24.0259 27.3388 23.9548 26.0162 24.4166C24.6935 24.8785 23.6126 25.8374 23.0111 27.0789Z" stroke="#797979" stroke-opacity="0.8" stroke-width="2.66667" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
     </button>
-    </form>
 </div>
 
 <script>
-        document.querySelectorAll('.like-form').forEach(form => {
+    //repost, like and save frontend updating without refreshing
+    document.querySelectorAll('.like-form, .save-form, .repost-form').forEach(form => {
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
 
             const button = this.querySelector('.spark-action-btn');
-
-            // If already processing, exit early to prevent double submission
             if (button.disabled) return;
 
-            // Disable button immediately
             button.disabled = true;
 
             const postId = this.getAttribute('data-post-id');
-            const countSpan = this.querySelector('.like-count');
-            const svgIcon = this.querySelector('.like-icon');
+
+            let countClass, iconClass, endpoint;
+
+            if (this.classList.contains('like-form')) {
+                countClass = '.like-count';
+                iconClass = '.like-icon';
+                endpoint = `/Post/LikePost?postId=${postId}`;
+            } else if (this.classList.contains('save-form')) {
+                countClass = '.save-count';
+                iconClass = '.save-icon';
+                endpoint = `/Post/SavePost?postId=${postId}`;
+            } else if (this.classList.contains('repost-form')) {
+                countClass = '.repost-count';
+                iconClass = '.repost-icon';
+                endpoint = `/Post/Repost?postId=${postId}`;
+            }
+
+            const countSpan = this.querySelector(countClass);
+            const svgIcon = this.querySelector(iconClass);
 
             try {
-                const response = await fetch(`/Post/LikePost?postId=${postId}`, {
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
@@ -67,21 +134,45 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    countSpan.textContent = data.likesCount;
 
-                    if (data.isLiked) {
-                        svgIcon.setAttribute('fill', 'currentColor');
-                    } else {
-                        svgIcon.setAttribute('fill', 'none');
+                    if (this.classList.contains('like-form')) {
+                        countSpan.textContent = data.likesCount;
+                        svgIcon.setAttribute('fill', data.isLiked ? 'var(--spark-accent)' : 'none');
+                        svgIcon.setAttribute('stroke', data.isLiked ? 'var(--spark-accent)' : 'currentColor');
+                    } else if (this.classList.contains('save-form')) {
+                        countSpan.textContent = data.savesCount;
+                        svgIcon.setAttribute('fill', data.isSaved ? 'var(--spark-accent)' : 'none');
+                        svgIcon.setAttribute('stroke', data.isSaved ? 'var(--spark-accent)' : 'currentColor');
+
+                    } else if (this.classList.contains('repost-form')) {
+                        countSpan.textContent = data.repostsCount;
+                        svgIcon.setAttribute('fill', data.isReposted ? 'var(--spark-accent)' : 'currentColor');
                     }
                 }
             } catch (error) {
-                console.error('Error handling the like action:', error);
+                console.error('Error handling the action:', error);
             } finally {
-                // Re-enable the button once the backend response arrives
                 button.disabled = false;
             }
         });
     });
+
+
+
+
+        function copyLink(postId) {
+        const fullLink = window.location.origin + '/Post/Show/' + postId;
+        navigator.clipboard.writeText(fullLink);
+
+        const popover = document.getElementById('shareLink');
+
+        setTimeout(() => {
+            if (popover.matches(':popover-open')) {
+                popover.hidePopover();
+            }
+        }, 2000);
+    }
+
+
 
 </script>

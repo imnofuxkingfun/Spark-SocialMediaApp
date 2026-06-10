@@ -1,6 +1,6 @@
 ﻿@{
     ViewData["Title"] = "Home";
-    var posts = ViewBag.Posts as List<Post> ?? new List<Post>();
+    var posts = ViewBag.Posts as List<PostViewModel> ?? new List<PostViewModel>();
     var userFollowing = ViewBag.Following as List<string> ?? new List<string>();
 }
 <!--top bar-->
@@ -27,11 +27,11 @@
                 <!-- following posts feed -->
 
                 <div class="spark-posts-feed">
-                    @foreach (var post in posts.OrderByDescending(p => p.CreatedAt))
+                    @foreach (var post in posts.OrderByDescending(p => p.Post?.CreatedAt))
                     {
                         var previewModel = new
                         {
-                            Post = post,
+                            PostViewModel = post,
                             UserFollowing = userFollowing
                         };
                         <partial name="PostPreviewPartial" model="previewModel" />

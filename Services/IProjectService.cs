@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Spark_SocialMediaApp.Data;
 using Spark_SocialMediaApp.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Spark_SocialMediaApp.Services
 {
@@ -9,6 +10,8 @@ namespace Spark_SocialMediaApp.Services
         Task<List<string>> HandleImageStoring(string userId, List<IFormFile> media, string folder, int maxMedia);
 
         Task HandleImageDeleting(List<string> media);
+
+        Task<PostViewModel> CreatePostViewModel(Post post, string? userId);
     }
 
     public class ProjectService: IProjectService
@@ -77,5 +80,45 @@ namespace Spark_SocialMediaApp.Services
             }
         }
     
+        public async Task<PostViewModel> CreatePostViewModel (Post post, string? userId)
+        {
+
+            //interaction system data
+            bool hasLiked = false;
+            bool hasSaved = false;
+            bool hasReposted = false;
+            int likeCount = 0;
+            int saveCount = 0;
+            int repostCount = 0;
+            int commentCount = 0;
+
+            if (userId != null)
+            {
+                hasLiked = await db.LikedPosts.AnyAsync(l => l.PostId == post.Id && l.UserId == userId);
+
+                hasSaved = await db.SavedPosts.AnyAsync(l => l.PostId == post.Id && l.UserId == userId);
+
+                hasReposted = await db.Posts.AnyAsync(p => p.ParentPost == post && p.AuthorId == userId);
+            }
+
+            likeCount = db.LikedPosts.Where(p => p.PostId == post.Id).Count();
+            saveCount = db.SavedPosts.Where(p => p.PostId == post.Id).Count();
+            repostCount = db.Posts.Where(p => p.ParentPost == post).Count();
+            commentCount = db.Comments.Where(c => c.PostId == post.Id).Count();
+
+
+            var viewModel = new PostViewModel
+            {
+                Post = post,
+                HasLiked = hasLiked,
+                HasSaved = hasSaved,
+                HasReposted = hasReposted,
+                LikeCount = likeCount,
+                SaveCount = saveCount,
+                RepostCount = repostCount,
+                CommentCount = commentCount
+            };
+            return viewModel;
+        }
     }
 }

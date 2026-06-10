@@ -19,6 +19,7 @@
     @RenderSection("Styles", false)
 </head>
 <body>
+    <div popover="manual" id="shareLink">Saved Link</div>
     @{
             
         var currentPage = string.Empty;
@@ -226,3 +227,4 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+

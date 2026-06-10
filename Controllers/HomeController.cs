@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Spark_SocialMediaApp.Data;
 using Spark_SocialMediaApp.Models;
+using Spark_SocialMediaApp.Services;
 using System.Diagnostics;
 
 namespace Spark_SocialMediaApp.Controllers
@@ -26,8 +27,10 @@ namespace Spark_SocialMediaApp.Controllers
             this._env = env;
         }
 
-        public IActionResult Index() // = following + tag !!!
+        public async Task<IActionResult> Index() // = following + tag !!!
         {
+            User user = db.Users.Find(userManager.GetUserId(User));
+
             var userFollowing = db.UserConnections
                 .Where(u => u.UserSentId == userManager.GetUserId(User))
                 .Where(c => c.Status == ConnectionStatus.Accepted)
@@ -43,8 +46,17 @@ namespace Spark_SocialMediaApp.Controllers
                 .Include(a => a.Author).ThenInclude(a => a.Profile)
                 .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
                 .ToList();
-                
-            ViewBag.Posts = posts;
+
+            List<PostViewModel> postsViewModel = new List<PostViewModel>();
+
+            foreach (Post post in posts)
+            {
+                ProjectService projectService = new ProjectService(db, _env);
+                PostViewModel postViewModel = await projectService.CreatePostViewModel(post, user.Id);
+                postsViewModel.Add(postViewModel);
+            }
+
+            ViewBag.Posts = postsViewModel;
             return View();
         }
 

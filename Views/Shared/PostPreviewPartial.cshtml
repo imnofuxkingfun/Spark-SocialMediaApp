@@ -1,5 +1,5 @@
 ﻿@{
-    var post = Model.Post;
+    var post = Model.PostViewModel.Post;
 }
 <div class="spark-card-container">
     <!-- post preview -->
@@ -106,7 +106,7 @@
     <!-- interaction system -->
     @if (post is Spark)
     {
-        <partial name="PostInteractionSystemPartial" model="post" />
+        <partial name="PostInteractionSystemPartial" model="Model.PostViewModel" />
     }
 
 </div>

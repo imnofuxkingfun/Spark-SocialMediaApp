@@ -6,6 +6,7 @@
     var isOwnerOrAdmin = User.Identity.IsAuthenticated && (Model.AuthorId == currentUserId || User.IsInRole("Admin"));
     var isOwner = User.Identity.IsAuthenticated && Model.AuthorId == currentUserId;
     var UserFollowing = ViewBag.Following;
+    var interactionModel = ViewBag.InteractionModel; // PostInteractionSystem ViewModel
 }
 
 <div class="container">
@@ -141,7 +142,7 @@
         </div>
 
         <!-- Interaction bar -->
-        <partial name="PostInteractionSystemPartial" model="Model" />
+                <partial name="PostInteractionSystemPartial" model="interactionModel" />
     </div>
 
     <!-- Comments -->

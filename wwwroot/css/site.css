@@ -27,6 +27,41 @@ html, body {
     overflow-x: hidden;
 }
 
+[popover] {
+    display: none;
+    height: 0vh; 
+    opacity: 0;
+    color: var(--spark-text);
+    background: rgba(var(--spark-accent-rgb), 0.6);
+    background-clip: padding-box;
+    justify-self: center;
+    margin-top: 1%;
+    border: 0px solid transparent; 
+    border-radius: 10px;
+    overflow: hidden; 
+    
+    transition: height 0.3s ease, opacity 0.3s ease, padding 0.3s ease, border 0.3s ease, display 0.3s ease allow-discrete, overlay 0.3s ease allow-discrete;
+}
+
+    
+    [popover]:popover-open {
+        display: flex; 
+        height: 4vh;
+        opacity: 1;
+        padding: 10px;
+        border: 2px solid var(--spark-text);
+    }
+
+@starting-style {
+    [popover]:popover-open {
+        height: 0vh;
+        opacity: 0;
+        padding: 0px 10px;
+        border: 0px solid transparent;
+    }
+}
+
+
 
 .spark-page {
     display: flex;
@@ -632,6 +667,7 @@ html, body {
     }
 
 .spark-action-count {
+    width: 1rem;
     font-size: 16px;
     font-family: 'Trocchi', Georgia, serif;
 }

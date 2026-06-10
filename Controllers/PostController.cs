@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Spark_SocialMediaApp.Data;
 using Spark_SocialMediaApp.Models;
 using Spark_SocialMediaApp.Services;
+using System.Reflection.Metadata;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace Spark_SocialMediaApp.Controllers
@@ -34,7 +35,7 @@ namespace Spark_SocialMediaApp.Controllers
         }
 
         [AllowAnonymous]
-        public IActionResult Show(string id)
+        public async Task<IActionResult> Show(string id)
         {
 
             Post? post = db.Posts
@@ -58,25 +59,11 @@ namespace Spark_SocialMediaApp.Controllers
 
             ViewBag.Following = userFollowing;
 
-            //bool hasLiked = false;
-            //bool hasSaved = false;
+            ProjectService projectService = new ProjectService(db, _env);
+            PostViewModel postViewModel = await projectService.CreatePostViewModel(post, user.Id);
+            ViewBag.InteractionModel = postViewModel;
 
-            //if(user!=null)
-            //{
-            //   hasLiked = db.LikedPosts
-            //    .AnyAsync(l => l.PostId == id && l.UserId == user.Id) != null;
-
-            //    hasSaved = db.SavedPosts
-            //     .AnyAsync(l => l.PostId == id && l.UserId == user.Id) != null;
-            //}
-
-            //var viewModel = new PostViewModel
-            //{
-            //    Post = post,
-            //    HasLiked = hasLiked,
-            //    HasSaved = hasSaved
-            //};
-
+            ////privacy check
 
             if (post != null && !(post.Privacy == PrivacySettings.Public) && author.Id != user.Id)
             {
@@ -455,23 +442,23 @@ namespace Spark_SocialMediaApp.Controllers
 
             if (existingLike == null)
             {
-                // User has not liked yet -> Add Like
+                // no like -> add like
                 db.LikedPosts.Add(new LikedPost { PostId = postId, UserId = userId });
                 isLikedNow = true;
             }
             else
             {
-                // User already liked -> Remove Like (Toggle functionality)
+                // -> remove like
                 db.LikedPosts.Remove(existingLike);
                 isLikedNow = false;
             }
 
             await db.SaveChangesAsync();
 
-            // Recalculate total count
+            // recalculate
             var totalLikes = db.LikedPosts.Count(l => l.PostId == postId);
 
-            // Return JSON data instead of refreshing the page
+            // JSON data instead of refreshing the page
             return Json(new { success = true, likesCount = totalLikes, isLiked = isLikedNow });
         }
 
@@ -480,17 +467,36 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost, Authorize]
         public async Task<IActionResult> SavePost(string postId)
         {
-            var post = db.Posts.Find(postId);
-            if (post != null)
+            var post = await db.Posts.Include(p => p.SavedByUsers).FirstOrDefaultAsync(p => p.Id == postId);
+            if (post == null)
             {
-                var userId = userManager.GetUserId(User);
-                if (!db.SavedPosts.Any(s => s.PostId == postId && s.UserId == userId))
-                {
-                    db.SavedPosts.Add(new SavedPost { PostId = postId, UserId = userId });
-                    await db.SaveChangesAsync();
-                }
+                return NotFound();
             }
-            return RedirectToAction("Show", new { id = postId });
+
+            var userId = userManager.GetUserId(User);
+            var existingSave = db.SavedPosts.FirstOrDefault(l => l.PostId == postId && l.UserId == userId);
+            bool isSavedNow;
+
+            if (existingSave == null)
+            {
+                // no Save -> add Save
+                db.SavedPosts.Add(new SavedPost { PostId = postId, UserId = userId });
+                isSavedNow = true;
+            }
+            else
+            {
+                // -> remove Save
+                db.SavedPosts.Remove(existingSave);
+                isSavedNow = false;
+            }
+
+            await db.SaveChangesAsync();
+
+            // recalculate
+            var totalSaves = db.SavedPosts.Count(l => l.PostId == postId);
+
+            // JSON data instead of refreshing the page
+            return Json(new { success = true, savesCount = totalSaves, isSaved = isSavedNow });
 
         }
 
@@ -503,6 +509,48 @@ namespace Spark_SocialMediaApp.Controllers
             var savedPosts = db.SavedPosts.All(s => s.UserId == userId);
 
             return View(savedPosts);
+        }
+
+        //reblog
+        [HttpPost, Authorize]
+        public async Task<IActionResult> Repost(string postId)
+        {
+            var post = await db.Posts.Include(p => p.SavedByUsers).FirstOrDefaultAsync(p => p.Id == postId);
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+            var userId = userManager.GetUserId(User);
+            var existingRepost= db.Posts.FirstOrDefault(l => l.AuthorId == userId && l.ParentPost == post);
+            //!!! tba text media privacy settings reqoutes and content filters
+
+            if(existingRepost == null)
+            {
+                //no repost -> we make repost
+                var privacy = db.UserSettings.Find(userId).PrivacyPublic ? PrivacySettings.Public : PrivacySettings.Private;
+                var text = string.Empty;
+                db.Posts.Add(new Spark
+                {
+                    Text = text,
+                    Media = new List<string>(),
+                    AuthorId = userId,
+                    ParentPost = post,
+                    CreatedAt = DateTime.UtcNow,
+                    Privacy = privacy,
+                    ContentFilters = post.ContentFilters
+                });
+                
+            }
+            //delete must be manual
+            await db.SaveChangesAsync();
+            var isRepostedNow = true;
+            // recalculate
+            var totalReposts = db.Posts.Count(l => l.ParentPost == post);
+
+            // JSON data instead of refreshing the page
+            return Json(new { success = true, repostsCount = totalReposts, isReposted = isRepostedNow });
+
         }
     }
 }
