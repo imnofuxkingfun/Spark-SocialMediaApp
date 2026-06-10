@@ -31,19 +31,22 @@
                         string text = null;
                         if (sparkPost != null)
                         {
-                            mediaUrl = sparkPost.Media[0];
-                            text = sparkPost.Text;
+                            mediaUrl = sparkPost.Media?.FirstOrDefault() ?? string.Empty;
+
+                            text = sparkPost.Text != null ? sparkPost.Text : string.Empty;
                         }
                         else if (blogPost != null)
                         {
-                            mediaUrl = blogPost.Media[0];
-                            text = blogPost.Text;
+                            mediaUrl = blogPost.Media?.FirstOrDefault() ?? string.Empty;
+
+                            text = blogPost.Text != null ? blogPost.Text : string.Empty;
                         }
 
                         <!--pfp-->
                         <div class="spark-card-container notification-card">
                             <img class="spark-avatar" src="@(notification.Sender?.Profile?.ProfilePicture ?? "/defaults/default_icon.png")"
-                                 alt="Profile Picture @notification.Sender?.UserName" />
+                                 alt="Profile Picture @notification.Sender?.UserName" 
+                             style="cursor:pointer;" onclick="window.location.href='@Url.Action("Show", "Profile", new { id = notification.SenderId })'" />
                                  <!--content-->
                             <div class="spark-content">
                                 <div class="spark-post-header">
@@ -56,7 +59,7 @@
                                     @if (notification.Type == NotificationType.Follow && !userFollowing.Contains(notification.SenderId)) 
                                     {
                                         <form asp-action="SendFollowRequest" asp-controller="Connections" class="follow-button" data-author-id="@notification.SenderId">
-                                        <input type="hidden" value="@notification.ReceiverId" name="followedId" />
+                                        <input type="hidden" value="@notification.SenderId" name="followedId" />
                                             <button type="submit" class="spark-follow-btn">Follow Back</button>
                                         </form>
                                     }
@@ -100,7 +103,7 @@
                             <!-- post media -->
                             @if (post != null && (notification.Type == NotificationType.Like || notification.Type == NotificationType.Comment || notification.Type == NotificationType.Repost) && !string.IsNullOrEmpty(mediaUrl))
                             {
-                                <div class="notification-media-preview" style="cursor:pointer;" onclick="window.location.href='@Url.Action("Show", "Post", new { id = post.Id })''">
+                                <div class="notification-media-preview" style="cursor:pointer;" onclick="window.location.href='@Url.Action("Show", "Post", new { id = post.Id })'">
                                     <img src="@mediaUrl" alt="Post preview" />
                                 </div>
                             }

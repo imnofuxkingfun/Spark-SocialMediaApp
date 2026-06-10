@@ -14,17 +14,17 @@ namespace Spark_SocialMediaApp.Controllers
     public class ProfileController : Controller
     {
         private readonly ILogger<ProfileController> logger;
-        private readonly ApplicationDbContext db;
+        private readonly IDbContextFactory<ApplicationDbContext> contextFactory;
         private readonly UserManager<User> userManager;
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly IWebHostEnvironment _env;
 
 
-        public ProfileController(ILogger<ProfileController> logger, ApplicationDbContext db, UserManager<User> userManager, RoleManager<IdentityRole> roleManager,
+        public ProfileController(ILogger<ProfileController> logger, IDbContextFactory<ApplicationDbContext> contextFactory, UserManager<User> userManager, RoleManager<IdentityRole> roleManager,
              IWebHostEnvironment _env)
         {
             this.logger = logger;
-            this.db = db;
+            this.contextFactory = contextFactory;
             this.userManager = userManager;
             this.roleManager = roleManager;
             this._env = _env;
@@ -35,6 +35,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpGet]
         public IActionResult Index()
         {
+            using var db = contextFactory.CreateDbContext();
             var userProfile = db.UserProfiles
                 .Include(up => up.User)
                 .FirstOrDefault(up => up.UserId == userManager.GetUserId(User));
@@ -58,6 +59,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost]
         public async Task<IActionResult> UpdateProfile(string userName, string displayName, IFormFile profilePicture, IFormFile bannerPicture, string bannerColor)
         {
+            using var db = contextFactory.CreateDbContext();
             //username
             logger.LogInformation("entered" + userName + "  " + displayName);
 
@@ -197,6 +199,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost]
         public async Task<IActionResult> DeleteProfilePicture()
         {
+            using var db = contextFactory.CreateDbContext();
             var userProfile = db.UserProfiles.FirstOrDefault(up => up.UserId == userManager.GetUserId(User));
 
             if (userProfile == null)
@@ -239,6 +242,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost]
         public async Task<IActionResult> DeleteBannerPicture()
         {
+            using var db = contextFactory.CreateDbContext();
             var userProfile = db.UserProfiles.FirstOrDefault(up => up.UserId == userManager.GetUserId(User));
 
             if (userProfile == null)

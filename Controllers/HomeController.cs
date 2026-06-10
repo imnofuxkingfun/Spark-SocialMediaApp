@@ -13,15 +13,16 @@ namespace Spark_SocialMediaApp.Controllers
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> logger;
-        private readonly ApplicationDbContext db;
+        private readonly IDbContextFactory<ApplicationDbContext> contextFactory;
         private readonly UserManager<User> userManager;
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly IWebHostEnvironment _env;
 
-        public HomeController(ILogger<HomeController> logger, ApplicationDbContext db, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IWebHostEnvironment env)
+        public HomeController(ILogger<HomeController> logger, IDbContextFactory<ApplicationDbContext> contextFactory, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IWebHostEnvironment env)
         {
+            using var db = contextFactory.CreateDbContext();
             this.logger = logger;
-            this.db = db;
+            this.contextFactory = contextFactory;
             this.userManager = userManager;
             this.roleManager = roleManager;
             this._env = env;
@@ -29,6 +30,7 @@ namespace Spark_SocialMediaApp.Controllers
 
         public async Task<IActionResult> Index() // = following + tag !!!
         {
+            using var db = contextFactory.CreateDbContext();
             User user = db.Users.Find(userManager.GetUserId(User));
 
             var userFollowing = db.UserConnections
@@ -63,6 +65,7 @@ namespace Spark_SocialMediaApp.Controllers
 
         public IActionResult Explore() //for you + trending !!!
         {
+            using var db = contextFactory.CreateDbContext();
             var userFollowing = db.UserConnections
                 .Where(u => u.UserSentId == userManager.GetUserId(User))
                 .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)

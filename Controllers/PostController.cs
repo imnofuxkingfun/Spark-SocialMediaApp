@@ -14,15 +14,15 @@ namespace Spark_SocialMediaApp.Controllers
     {
 
         private readonly ILogger<PostController> logger;
-        private readonly ApplicationDbContext db;
+        private readonly IDbContextFactory<ApplicationDbContext> contextFactory;
         private readonly UserManager<User> userManager;
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly IWebHostEnvironment _env;
 
-        public PostController(ILogger<PostController> logger, ApplicationDbContext db, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IWebHostEnvironment env)
+        public PostController(ILogger<PostController> logger, IDbContextFactory<ApplicationDbContext> contextFactory, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IWebHostEnvironment env)
         {
             this.logger = logger;
-            this.db = db;
+            this.contextFactory = contextFactory;
             this.userManager = userManager;
             this.roleManager = roleManager;
             this._env = env;
@@ -37,6 +37,7 @@ namespace Spark_SocialMediaApp.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Show(string id)
         {
+            using var db = contextFactory.CreateDbContext();
 
             Post? post = db.Posts
                 .Include(c => c.Comments)
@@ -124,6 +125,7 @@ namespace Spark_SocialMediaApp.Controllers
         [Authorize]
         public async Task <IActionResult> CreatePost()
         {
+            using var db = contextFactory.CreateDbContext();
             var userSettings = await db.UserSettings.FindAsync(userManager.GetUserId(User));
             ViewBag.PrivacyPublic = userSettings.PrivacyPublic;
 
@@ -136,6 +138,7 @@ namespace Spark_SocialMediaApp.Controllers
         [Authorize, HttpPost]
         public async Task<IActionResult> CreateSpark(string privacy, string? text, List<IFormFile>? media)
         {
+            using var db = contextFactory.CreateDbContext();
             if (text == null && (media == null || media.Count == 0))
             {
                 ModelState.AddModelError("SparkError", "Spark must contain at least either text or images");
@@ -237,6 +240,7 @@ namespace Spark_SocialMediaApp.Controllers
         [Authorize, HttpPost]
         public IActionResult EditSpark(string id, string? text)
         {
+            using var db = contextFactory.CreateDbContext();
             var spark = (Spark)db.Posts.Find(id);
             if (DateTime.UtcNow - spark.CreatedAt > TimeSpan.FromMinutes(15)) //15 min window for editing 
             {
@@ -264,7 +268,8 @@ namespace Spark_SocialMediaApp.Controllers
         [Authorize, HttpPost]
         public async Task<IActionResult> CreateBlog(string? privacy, string title, string? text,  List<IFormFile>? images)
         {
-            if(text == null && (images == null || images.Count == 0))
+            using var db = contextFactory.CreateDbContext();
+            if (text == null && (images == null || images.Count == 0))
             {
                 ModelState.AddModelError("BlogError","Blog must contain at least either text or images");
                 return RedirectToAction("CreatePost");
@@ -361,6 +366,7 @@ namespace Spark_SocialMediaApp.Controllers
         [Authorize, HttpPost]
         public IActionResult EditBlog(string id, string? text, string title)
         {
+            using var db = contextFactory.CreateDbContext();
             var blog = (Blog)db.Posts.Find(id);
             if (DateTime.UtcNow - blog.CreatedAt > TimeSpan.FromMinutes(15)) //15 min window for editing 
             {
@@ -397,7 +403,10 @@ namespace Spark_SocialMediaApp.Controllers
         [Authorize, HttpPost]
         public async Task<IActionResult> DeletePost(string id)
         {
-            var post = db.Posts.Find(id);
+            using var db = contextFactory.CreateDbContext();
+            var post = await db.Posts
+            .Include(p => p.ParentPost)
+            .FirstOrDefaultAsync(p => p.Id == id);
             ProjectService projectService = new ProjectService(db, _env);
             if (post != null && (post.AuthorId == userManager.GetUserId(User) || User.IsInRole("Admin")))
             {
@@ -416,11 +425,16 @@ namespace Spark_SocialMediaApp.Controllers
                     db.Comments.Remove(comment);
                 }
 
+                //if its a repost delete repost notification
+                if(post.ParentPost != null)
+                {
+                    //delete notification
+                    await projectService.DeleteNotification(post.AuthorId, post.ParentPost.AuthorId, NotificationType.Repost, post.ParentPost);
+                }
+
                 db.Posts.Remove(post);
                 await db.SaveChangesAsync();
             }
-
-            
 
             return Redirect("/Home/Index");
         }
@@ -430,6 +444,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost, Authorize]
         public async Task<IActionResult> LikePost(string postId)
         {
+            using var db = contextFactory.CreateDbContext();
             var post = await db.Posts.Include(p => p.LikedByUsers).FirstOrDefaultAsync(p => p.Id == postId);
             if (post == null)
             {
@@ -474,6 +489,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost, Authorize]
         public async Task<IActionResult> SavePost(string postId)
         {
+            using var db = contextFactory.CreateDbContext();
             var post = await db.Posts.Include(p => p.SavedByUsers).FirstOrDefaultAsync(p => p.Id == postId);
             if (post == null)
             {
@@ -512,6 +528,7 @@ namespace Spark_SocialMediaApp.Controllers
         [Authorize]
         public IActionResult Saved()
         {
+            using var db = contextFactory.CreateDbContext();
             var userId = userManager.GetUserId(User);
             var savedPosts = db.SavedPosts.All(s => s.UserId == userId);
 
@@ -522,6 +539,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost, Authorize]
         public async Task<IActionResult> Repost(string postId)
         {
+            using var db = contextFactory.CreateDbContext();
             var post = await db.Posts.Include(p => p.SavedByUsers).FirstOrDefaultAsync(p => p.Id == postId);
             if (post == null)
             {
@@ -555,8 +573,7 @@ namespace Spark_SocialMediaApp.Controllers
             //delete must be manual
             else
             {
-                //delete notification
-                await projectService.CreateNotification(userId, post.AuthorId, NotificationType.Repost, post);
+                
             }
             await db.SaveChangesAsync();
             var isRepostedNow = true;

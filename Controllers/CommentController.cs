@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Spark_SocialMediaApp.Data;
 using Spark_SocialMediaApp.Models;
 using Spark_SocialMediaApp.Services;
@@ -12,14 +13,14 @@ namespace Spark_SocialMediaApp.Controllers
     public class CommentController : Controller
     {
         private readonly ILogger<CommentController> logger;
-        private readonly ApplicationDbContext db;
+        private readonly IDbContextFactory<ApplicationDbContext> contextFactory;
         private readonly UserManager<User> userManager;
         private readonly RoleManager<IdentityRole> roleManager;
 
-        public CommentController(ILogger<CommentController> logger, ApplicationDbContext db, UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
+        public CommentController(ILogger<CommentController> logger, IDbContextFactory<ApplicationDbContext> contextFactory, UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
         {
             this.logger = logger;
-            this.db = db;
+            this.contextFactory = contextFactory;
             this.userManager = userManager;
             this.roleManager = roleManager;
         }
@@ -28,6 +29,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost, Authorize]
         public async Task<IActionResult> AddComment(string postId, string? text, IFormFile? media)
         {
+            using var db = contextFactory.CreateDbContext();
             logger.LogInformation("Adding Comment" + media);
             if(string.IsNullOrEmpty(text) && media == null)
             {
@@ -72,6 +74,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost]
         public async Task<IActionResult> EditComment(string postId, string id, string? text)
         {
+            using var db = contextFactory.CreateDbContext();
             logger.LogWarning("!!!!  ", text);
             var comment = db.Comments.Find(id);
             if (comment == null || DateTime.UtcNow - comment.CreatedAt > TimeSpan.FromMinutes(15))
@@ -97,6 +100,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost]
         public async Task<IActionResult> DeleteComment(string id)
         {
+            using var db = contextFactory.CreateDbContext();
             var comment = db.Comments.Find(id);
 
             ProjectService projectService = new ProjectService(db, HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>());
@@ -108,13 +112,13 @@ namespace Spark_SocialMediaApp.Controllers
                     //delete media from storage
                     projectService.HandleImageDeleting(new List<string> { comment.Media });
                 }
-
-                db.Comments.Remove(comment);
-                await db.SaveChangesAsync();
-
                 //delete notification
 
                 await projectService.DeleteNotification(comment.AuthorId, db.Posts.Find(comment.PostId).AuthorId, NotificationType.Comment, db.Posts.Find(comment.PostId), comment);
+                db.Comments.Remove(comment);
+                await db.SaveChangesAsync();
+
+               
 
             }
             return Redirect("/Post/Show/" + comment.PostId);

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Spark_SocialMediaApp.Data;
 using Spark_SocialMediaApp.Models;
 using Spark_SocialMediaApp.Services;
@@ -12,14 +13,14 @@ namespace Spark_SocialMediaApp.Controllers
     {
         //follow requests
         private readonly ILogger<ConnectionsController> logger;
-        private readonly ApplicationDbContext db;
+        private readonly IDbContextFactory<ApplicationDbContext> contextFactory;
         private readonly UserManager<User> userManager;
         private readonly RoleManager<IdentityRole> roleManager;
 
-        public ConnectionsController(ILogger<ConnectionsController> logger, ApplicationDbContext db, UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
+        public ConnectionsController(ILogger<ConnectionsController> logger, IDbContextFactory<ApplicationDbContext> contextFactory, UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
         {
             this.logger = logger;
-            this.db = db;
+            this.contextFactory = contextFactory;
             this.userManager = userManager;
             this.roleManager = roleManager;
         }
@@ -27,6 +28,7 @@ namespace Spark_SocialMediaApp.Controllers
         
         public IActionResult ShowFollowRequests()
         {
+            using var db = contextFactory.CreateDbContext();
             string userId = userManager.GetUserId(User);
             var followRequests = db.UserConnections.Where(c => c.UserReceivedId == userId && c.Status == ConnectionStatus.Pending).ToList();
             ViewBag.FollowRequests = followRequests;
@@ -37,13 +39,14 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost]
         public async Task<IActionResult> SendFollowRequest(string followedId)
         {
+            using var db = contextFactory.CreateDbContext();
             logger.LogInformation(followedId + "!!!!!");
             string followerId = userManager.GetUserId(User);
             if (followerId == followedId)
             {
                 return Redirect("/Home/Index");
             }
-            var existingConnection = db.UserConnections.FirstOrDefault(c => c.UserSentId == followerId && c.UserReceivedId == followedId);
+            var existingConnection = db.UserConnections.FirstOrDefault(c => c.UserSentId == followerId && c.UserReceivedId == followedId && c.Status == ConnectionStatus.Accepted);
             if (existingConnection != null)
             {
                 return Redirect("/Home/Index");
@@ -77,41 +80,57 @@ namespace Spark_SocialMediaApp.Controllers
         public async Task<IActionResult> RespondToFollowRequest(string senderId, bool accept)
         {
             logger.LogWarning("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!respond entered");
+
+            // 1. Wrap in 'using' to safely manage the context lifecycle
+            using var db = await contextFactory.CreateDbContextAsync();
             var receiverId = userManager.GetUserId(User);
-            var connection = db.UserConnections.Where(c => c.UserSentId == senderId && c.UserReceivedId == receiverId && c.Status == ConnectionStatus.Pending).FirstOrDefault();
+
+            // Use FirstOrDefaultAsync for clean async execution
+            var connection = await db.UserConnections
+                .FirstOrDefaultAsync(c => c.UserSentId == senderId && c.UserReceivedId == receiverId && c.Status == ConnectionStatus.Pending);
+
             string status = "Pending";
+            logger.LogWarning("!!!!" + (connection == null) + "!!!!!");
             if (connection != null)
             {
                 connection.Status = accept ? ConnectionStatus.Accepted : ConnectionStatus.Rejected;
                 status = connection.Status.ToString();
+
+                // Pass the identical 'db' instance to the service
                 ProjectService projectService = new ProjectService(db, HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>());
+                logger.LogWarning("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!respond entered" + status);
 
                 if (connection.Status == ConnectionStatus.Rejected)
                 {
                     db.UserConnections.Remove(connection);
-                    //delete notification
-                    projectService.DeleteNotification(connection.UserSentId, connection.UserReceivedId, NotificationType.Follow);
+
+                    // Delete notification internally updates the db tracker
+                    await projectService.DeleteNotification(connection.UserSentId, connection.UserReceivedId, NotificationType.FollowPendingRequest);
                     status = "Rejected";
                 }
                 else
                 {
                     db.UserConnections.Update(connection);
 
-                    //modify notification text
-                    projectService.EditNotification(connection.UserSentId, connection.UserReceivedId, NotificationType.Follow, " followed you.");
+                    // Edit notification internally updates the db tracker
+                    await projectService.EditNotificationFromPendingToFollow(connection.UserSentId, connection.UserReceivedId, NotificationType.Follow, " followed you.");
                     status = "Accepted";
                 }
 
+                // 2. CRITICAL FIX: You MUST await this call so it finishes writing to the DB before redirecting!
                 await db.SaveChangesAsync();
             }
-            return Redirect("/Notification/Index");
 
+            return Redirect("/Notification/Index");
         }
+
+
 
         //follower unfollows followed
         [HttpPost]
         public async Task<IActionResult> Unfollow(string followedId)
         {
+            using var db = contextFactory.CreateDbContext();
             string followerId = userManager.GetUserId(User);
             var connection = db.UserConnections.FirstOrDefault(c => c.UserSentId == followerId && c.UserReceivedId == followedId);
             if (connection != null)
@@ -126,6 +145,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost]
         public IActionResult BlockUser(string blockedId)
         {
+            using var db = contextFactory.CreateDbContext();
             string blockerId = userManager.GetUserId(User);
             if (blockerId == blockedId)
             {

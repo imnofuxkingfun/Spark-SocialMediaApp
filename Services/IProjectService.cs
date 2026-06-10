@@ -198,7 +198,7 @@ namespace Spark_SocialMediaApp.Services
             }
         }
 
-        public async Task EditNotification(string senderId, string receiverId, NotificationType type, string text, Post? post = null, Comment? comment = null)
+        public async Task EditNotificationFromPendingToFollow(string senderId, string receiverId, NotificationType type, string text, Post? post = null, Comment? comment = null)
         {
             string senderName = await db.Users.Where(u => u.Id == senderId).Select(u => u.UserName).FirstOrDefaultAsync();
             if (senderId == receiverId)
@@ -208,15 +208,15 @@ namespace Spark_SocialMediaApp.Services
             Notification? notification;
             if (type == NotificationType.Like || type == NotificationType.Repost)
             {
-                notification = await db.Notifications.FirstOrDefaultAsync(n => n.SenderId == senderId && n.ReceiverId == receiverId && n.Type == type && n.Post == post);
+                notification = await db.Notifications.FirstOrDefaultAsync(n => n.SenderId == senderId && n.ReceiverId == receiverId && n.Type == NotificationType.FollowPendingRequest && n.Post == post);
             }
             else if (type == NotificationType.Comment)
             {
-                notification = await db.Notifications.FirstOrDefaultAsync(n => n.SenderId == senderId && n.ReceiverId == receiverId && n.Type == type && n.Comment == comment);
+                notification = await db.Notifications.FirstOrDefaultAsync(n => n.SenderId == senderId && n.ReceiverId == receiverId && n.Type == NotificationType.FollowPendingRequest && n.Comment == comment);
             }
             else //follow or pending follow request
             {
-                notification = await db.Notifications.FirstOrDefaultAsync(n => n.SenderId == senderId && n.ReceiverId == receiverId && n.Type == type);
+                notification = await db.Notifications.FirstOrDefaultAsync(n => n.SenderId == senderId && n.ReceiverId == receiverId && n.Type == NotificationType.FollowPendingRequest);
             }
 
             if (notification != null)

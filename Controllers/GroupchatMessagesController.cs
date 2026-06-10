@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Spark_SocialMediaApp.Data;
 using Spark_SocialMediaApp.Models;
 
@@ -10,14 +11,14 @@ namespace Spark_SocialMediaApp.Controllers
     public class GroupchatMessagesController : Controller
     {
         private readonly ILogger<GroupchatMessagesController> logger;
-        private readonly ApplicationDbContext db;
+        private readonly IDbContextFactory<ApplicationDbContext> contextFactory;
         private readonly UserManager<User> userManager;
         private readonly RoleManager<IdentityRole> roleManager;
 
-        public GroupchatMessagesController(ILogger<GroupchatMessagesController> logger, ApplicationDbContext db, UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
+        public GroupchatMessagesController(ILogger<GroupchatMessagesController> logger, IDbContextFactory<ApplicationDbContext> contextFactory, UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
         {
             this.logger = logger;
-            this.db = db;
+            this.contextFactory = contextFactory;
             this.userManager = userManager;
             this.roleManager = roleManager;
         }
@@ -26,6 +27,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost]
         public async Task<IActionResult> SendMessage(string groupchatId, [FromForm] string text, [FromForm] string media)
         {
+            using var db = contextFactory.CreateDbContext();
             Groupchat groupchat = db.Groupchats.Find(groupchatId);
             if (groupchat == null || !groupchat.Members.Any(m => m.UserId == userManager.GetUserId(User)))
             {
@@ -49,6 +51,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost]
         public async Task<IActionResult> SendPost(string groupchatId, [FromForm] string postId)
         {
+            using var db = contextFactory.CreateDbContext();
             Groupchat groupchat = db.Groupchats.Find(groupchatId);
             if (groupchat == null || !groupchat.Members.Any(m => m.UserId == userManager.GetUserId(User)))
             {
@@ -76,6 +79,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost]
         public IActionResult EditMessage(string groupchatId, string messageId, [FromForm] GroupchatMessage updatedMessage)
         {
+            using var db = contextFactory.CreateDbContext();
             var message = db.GroupchatMessages.Find(groupchatId,messageId);
             if (DateTime.UtcNow - message.CreatedAt > TimeSpan.FromMinutes(15))
             {
@@ -97,6 +101,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpDelete]
         public IActionResult DeleteMessage(string groupchatId, string messageId)
         {
+            using var db = contextFactory.CreateDbContext();
             var message = db.GroupchatMessages.Find(groupchatId, messageId);
             var isAdmin = db.GroupchatMembers.Any(m => m.GroupchatId == groupchatId && m.UserId == userManager.GetUserId(User) && m.IsAdmin);
 
