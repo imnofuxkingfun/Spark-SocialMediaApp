@@ -24,6 +24,7 @@ namespace Spark_SocialMediaApp.Models
         private PrivacySettings privacy { get; set; } = PrivacySettings.None;
 
         private Dictionary<string, bool> contentFilters = UserSettings.ContentFilterInit();
+        private bool? isHighlighted = false;
 
 
         //getters and setters
@@ -64,6 +65,14 @@ namespace Spark_SocialMediaApp.Models
             set { contentFilters = value; }
         }
 
+        public bool IsHighlighted
+        {
+            get
+            {
+                return isHighlighted ?? false;
+            }
+            set { isHighlighted = value; }
+        }
 
         public virtual User? Author { get; set; }
 

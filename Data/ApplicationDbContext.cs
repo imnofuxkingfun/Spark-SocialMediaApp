@@ -227,6 +227,7 @@ namespace Spark_SocialMediaApp.Data
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<PostTags> PostTags { get; set; }
+        public DbSet<Tag> Tags { get; set; }
     }
 
 }

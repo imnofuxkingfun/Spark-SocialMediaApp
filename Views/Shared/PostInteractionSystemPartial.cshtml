@@ -16,7 +16,10 @@
 
     <!-- reblog -->
     <form method="post" asp-controller="Post" asp-action="Repost" class="repost-form" data-post-id="@post.Id">
-        <button type="submit" class="spark-action-btn" aria-label="Retweet">
+        <button type="button"
+                class="spark-action-btn"
+                aria-label="Retweet"
+            @(Model.Post?.Privacy != PrivacySettings.Public ? "disabled" : "")>
             <svg class="repost-icon" width="37" height="36" viewBox="0 0 37 36" fill="@(Model.HasReposted == true ? "var(--spark-accent)" : "currentColor")">
                 <path d="M36.2427 7.46136L28.6957 14.9227L27.2033 13.4262L32.1707 8.51522H6.39576V16.9461H4.26384V6.40749H32.1707L27.2033 1.49649L28.6957 0L36.2427 7.46136ZM29.8469 27.4848V19.0539H31.9788V29.5925H4.07197L9.03934 34.5035L7.547 36L0 28.5386L7.547 21.0773L9.03934 22.5738L4.07197 27.4848H29.8469Z" />
             </svg>
@@ -34,9 +37,17 @@
                     @Model.RepostCount
                 }
             </span>
-
         </button>
+
+        <!-- Simple Popup Menu (Hidden by default) -->
+        <div class="repost-popup" style="display: none; position: absolute; background: white; border: 1px solid #ccc; padding: 5px; box-shadow: 0px 2px 5px rgba(0,0,0,0.2); z-index: 100;">
+            <input type="hidden" name="postParentId" value="@post.Id" />
+
+            <button type="button" class="popup-opt-repost" style="display: block; width: 100%; text-align: left; background: none; border: none; padding: 5px 10px; cursor: pointer;">Repost</button>
+            <button type="button" class="popup-opt-respark" style="display: block; width: 100%; text-align: left; background: none; border: none; padding: 5px 10px; cursor: pointer;">Respark</button>
+        </div>
     </form>
+
 
     <!-- like -->
     <form method="post" asp-controller="Post" asp-action="LikePost" class="like-form" data-post-id="@post.Id">
@@ -94,35 +105,33 @@
 
 <script>
     //repost, like and save frontend updating without refreshing
-    document.querySelectorAll('.like-form, .save-form, .repost-form').forEach(form => {
-        form.addEventListener('submit', async function(e) {
-            e.preventDefault();
+            document.addEventListener("DOMContentLoaded", function () {
 
-            const button = this.querySelector('.spark-action-btn');
-            if (button.disabled) return;
+        async function performAjaxAction(form, actionType) {
+            const button = form.querySelector('.spark-action-btn');
+            if (button && button.disabled) return;
 
-            button.disabled = true;
-
-            const postId = this.getAttribute('data-post-id');
+            if (button) button.disabled = true;
+            const postId = form.getAttribute('data-post-id');
 
             let countClass, iconClass, endpoint;
 
-            if (this.classList.contains('like-form')) {
+            if (actionType === 'like') {
                 countClass = '.like-count';
                 iconClass = '.like-icon';
                 endpoint = `/Post/LikePost?postId=${postId}`;
-            } else if (this.classList.contains('save-form')) {
+            } else if (actionType === 'save') {
                 countClass = '.save-count';
                 iconClass = '.save-icon';
                 endpoint = `/Post/SavePost?postId=${postId}`;
-            } else if (this.classList.contains('repost-form')) {
+            } else if (actionType === 'repost') {
                 countClass = '.repost-count';
                 iconClass = '.repost-icon';
                 endpoint = `/Post/Repost?postId=${postId}`;
             }
 
-            const countSpan = this.querySelector(countClass);
-            const svgIcon = this.querySelector(iconClass);
+            const countSpan = form.querySelector(countClass);
+            const svgIcon = form.querySelector(iconClass);
 
             try {
                 const response = await fetch(endpoint, {
@@ -135,32 +144,70 @@
                 if (response.ok) {
                     const data = await response.json();
 
-                    if (this.classList.contains('like-form')) {
+                    if (actionType === 'like') {
                         countSpan.textContent = data.likesCount;
                         svgIcon.setAttribute('fill', data.isLiked ? 'var(--spark-accent)' : 'none');
                         svgIcon.setAttribute('stroke', data.isLiked ? 'var(--spark-accent)' : 'currentColor');
-                    } else if (this.classList.contains('save-form')) {
+                    } else if (actionType === 'save') {
                         countSpan.textContent = data.savesCount;
                         svgIcon.setAttribute('fill', data.isSaved ? 'var(--spark-accent)' : 'none');
                         svgIcon.setAttribute('stroke', data.isSaved ? 'var(--spark-accent)' : 'currentColor');
-
-                    } else if (this.classList.contains('repost-form')) {
+                    } else if (actionType === 'repost') {
                         countSpan.textContent = data.repostsCount;
                         svgIcon.setAttribute('fill', data.isReposted ? 'var(--spark-accent)' : 'currentColor');
                     }
+                } else {
+                    console.error(`Server error: ${response.status}`);
                 }
             } catch (error) {
-                console.error('Error handling the action:', error);
+                console.error('Error executing action:', error);
             } finally {
-                button.disabled = false;
+                if (button) button.disabled = false;
             }
+        }
+
+        document.querySelectorAll('.like-form, .save-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const type = this.classList.contains('like-form') ? 'like' : 'save';
+                performAjaxAction(this, type);
+            });
+        });
+
+        document.querySelectorAll(".repost-form .spark-action-btn").forEach(btn => {
+            btn.addEventListener("click", function (e) {
+                e.stopPropagation();
+
+                document.querySelectorAll(".repost-popup").forEach(p => p.style.display = "none");
+
+                const form = this.closest(".repost-form");
+                const popup = form.querySelector(".repost-popup");
+                popup.style.display = "block";
+            });
+        });
+
+        document.querySelectorAll(".repost-popup button").forEach(optBtn => {
+            optBtn.addEventListener("click", function (e) {
+                e.stopPropagation();
+                const form = this.closest(".repost-form");
+                const postId = form.getAttribute('data-post-id');
+
+                form.querySelector(".repost-popup").style.display = "none";
+
+                if (this.classList.contains("popup-opt-repost")) {
+                    performAjaxAction(form, 'repost');
+                } else if (this.classList.contains("popup-opt-respark")) {
+                    window.location.href = `/Post/CreatePost?postParentId=${postId}`;
+                }
+            });
+        });
+
+        document.addEventListener("click", function () {
+            document.querySelectorAll(".repost-popup").forEach(p => p.style.display = "none");
         });
     });
 
-
-
-
-        function copyLink(postId) {
+    function copyLink(postId) {
         const fullLink = window.location.origin + '/Post/Show/' + postId;
         navigator.clipboard.writeText(fullLink);
 
@@ -172,7 +219,6 @@
             }
         }, 2000);
     }
-
 
 
 </script>

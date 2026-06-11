@@ -656,8 +656,8 @@ html, body {
     transition: color 0.2s ease, transform 0.1s ease;
 }
 
-    .spark-action-btn:hover {
-        color: #A55AFC;
+    .spark-action-btn:not(:disabled):hover {
+        color: var(--spark-accent);
         transform: scale(1.08);
     }
 
@@ -665,6 +665,7 @@ html, body {
         width: 28px;
         height: 28px;
     }
+
 
 .spark-action-count {
     width: 1rem;
@@ -911,7 +912,7 @@ html, body {
 
 .spark-blog-title {
     color: white;
-    font-size: 36px;
+    font-size: 2rem;
     font-weight: 400;
     margin: 0;
     word-wrap: break-word;

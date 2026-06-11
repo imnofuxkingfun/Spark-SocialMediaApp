@@ -123,20 +123,33 @@ namespace Spark_SocialMediaApp.Controllers
         }
 
         [Authorize]
-        public async Task <IActionResult> CreatePost()
+        public async Task<IActionResult> CreatePost(string? parentPostId = null)
         {
             using var db = contextFactory.CreateDbContext();
+
+            if (!string.IsNullOrEmpty(parentPostId))
+            {
+                var parentPost = await db.Posts.FindAsync(parentPostId);
+                ViewBag.ParentPost = parentPost;
+            }
+            else
+            {
+                ViewBag.ParentPost = null;
+            }
+
             var userSettings = await db.UserSettings.FindAsync(userManager.GetUserId(User));
             ViewBag.PrivacyPublic = userSettings.PrivacyPublic;
 
             Dictionary<string, bool> contentFilters = UserSettings.ContentFilterInit(false);
             ViewBag.ContentFilters = contentFilters;
+
             return View();
         }
 
+
         //spark logic
         [Authorize, HttpPost]
-        public async Task<IActionResult> CreateSpark(string privacy, string? text, List<IFormFile>? media)
+        public async Task<IActionResult> CreateSpark(string privacy, string? text, List<IFormFile>? media, string? tags)
         {
             using var db = contextFactory.CreateDbContext();
             if (text == null && (media == null || media.Count == 0))
@@ -214,6 +227,48 @@ namespace Spark_SocialMediaApp.Controllers
                 }
             }
 
+            //tags
+            if (!string.IsNullOrWhiteSpace(tags))
+            {
+               
+                var parsedTags = tags.Split('#', StringSplitOptions.RemoveEmptyEntries)
+                                     .Select(t => t.Trim().ToLower())
+                                     .Where(t => !string.IsNullOrEmpty(t))
+                                     .Distinct()
+                                     .ToList(); 
+
+               
+                if (parsedTags.Any())
+                {
+                    logger.LogInformation("Found tags count: " + parsedTags.Count + ". First tag: " + parsedTags.First());
+
+                   
+                    spark.Tags ??= new List<PostTags>();
+
+                    foreach (var tagName in parsedTags)
+                    {
+                        var existingTag = await db.Tags.FindAsync(tagName);
+                        if (existingTag == null)
+                        {
+                            existingTag = new Tag { Id = tagName };
+                            db.Tags.Add(existingTag);
+                        }
+
+                        spark.Tags.Add(new PostTags
+                        {
+                            PostId = spark.Id, 
+                            TagId = existingTag.Id
+                        });
+                    }
+                }
+                else
+                {
+                    logger.LogWarning("Tags string was provided but no valid tags were parsed: " + tags);
+                }
+            }
+
+
+
             if (TryValidateModel(spark))
             {
                 logger.LogInformation("Spark Created");
@@ -266,7 +321,7 @@ namespace Spark_SocialMediaApp.Controllers
 
         //blog logic
         [Authorize, HttpPost]
-        public async Task<IActionResult> CreateBlog(string? privacy, string title, string? text,  List<IFormFile>? images)
+        public async Task<IActionResult> CreateBlog(string? privacy, string title, string? text,  List<IFormFile>? images, string? tags)
         {
             using var db = contextFactory.CreateDbContext();
             if (text == null && (images == null || images.Count == 0))
@@ -337,6 +392,46 @@ namespace Spark_SocialMediaApp.Controllers
                 if (blog.ContentFilters.ContainsKey(warningName))
                 {
                     blog.ContentFilters[warningName] = isChecked;
+                }
+            }
+            
+            //tags
+            if (!string.IsNullOrWhiteSpace(tags))
+            {
+
+                var parsedTags = tags.Split('#', StringSplitOptions.RemoveEmptyEntries)
+                                     .Select(t => t.Trim().ToLower())
+                                     .Where(t => !string.IsNullOrEmpty(t))
+                                     .Distinct()
+                                     .ToList();
+
+
+                if (parsedTags.Any())
+                {
+                    logger.LogInformation("Found tags count: " + parsedTags.Count + ". First tag: " + parsedTags.First());
+
+
+                    blog.Tags ??= new List<PostTags>();
+
+                    foreach (var tagName in parsedTags)
+                    {
+                        var existingTag = await db.Tags.FindAsync(tagName);
+                        if (existingTag == null)
+                        {
+                            existingTag = new Tag { Id = tagName };
+                            db.Tags.Add(existingTag);
+                        }
+
+                        blog.Tags.Add(new PostTags
+                        {
+                            PostId = blog.Id,
+                            TagId = existingTag.Id
+                        });
+                    }
+                }
+                else
+                {
+                    logger.LogWarning("Tags string was provided but no valid tags were parsed: " + tags);
                 }
             }
 
@@ -583,6 +678,27 @@ namespace Spark_SocialMediaApp.Controllers
             // JSON data instead of refreshing the page
             return Json(new { success = true, repostsCount = totalReposts, isReposted = isRepostedNow });
 
+        }
+
+
+        //highlight post
+        [HttpPost, Authorize]
+        public async Task<IActionResult> Highlight(string postId)
+        {
+            using var db = contextFactory.CreateDbContext();
+            var post = await db.Posts.FindAsync(postId);
+            if (post == null)
+            {
+                return NotFound();
+            }
+            var userId = userManager.GetUserId(User);
+            if (post.AuthorId != userId)
+            {
+                return Forbid();
+            }
+            post.IsHighlighted = !post.IsHighlighted;
+            await db.SaveChangesAsync();
+            return RedirectToAction("Show", new { id = postId });
         }
     }
 }

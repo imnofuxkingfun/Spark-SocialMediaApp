@@ -105,6 +105,11 @@ public class DictionaryModelBinder : IModelBinder
         if (bindingContext.ModelType != typeof(Dictionary<string, bool>))
             return Task.CompletedTask;
 
+        if (!bindingContext.HttpContext.Request.HasFormContentType)
+        {
+            return Task.CompletedTask;
+        }
+
         var result = new Dictionary<string, bool>();
         var form = bindingContext.HttpContext.Request.Form;
         var prefix = bindingContext.ModelName + "[";

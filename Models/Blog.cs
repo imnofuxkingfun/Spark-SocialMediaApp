@@ -6,6 +6,7 @@ namespace Spark_SocialMediaApp.Models
     {
 
         [Required]
+        [MaxLength(100)]
         private string title;
 
         [MaxLength(5000)]
