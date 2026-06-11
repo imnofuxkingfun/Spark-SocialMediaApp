@@ -105,6 +105,7 @@ namespace Spark_SocialMediaApp.Models
 
 
         public virtual ICollection<Notification>? NotificationsReceived { get; set; }
+        public virtual ICollection<UserTags>? Tags { get; set; }
 
 
     }

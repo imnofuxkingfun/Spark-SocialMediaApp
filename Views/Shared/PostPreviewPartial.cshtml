@@ -7,7 +7,9 @@
 
         <!-- author + pfp -->
         <img class="spark-avatar" src="@(post.Author?.Profile?.ProfilePicture ?? "/defaults/default_icon.png")"
-             alt="Profile Picture @post.Author?.UserName" />
+             alt="Profile Picture @post.Author?.UserName" 
+             style="cursor: pointer;"
+             onclick="window.location.href='@Url.Action("Show", "Profile", new { id = post.AuthorId })'" />
 
         <div class="spark-content">
             <!-- username display name, follow button -->

@@ -40,7 +40,6 @@ namespace Spark_SocialMediaApp.Controllers
         public async Task<IActionResult> SendFollowRequest(string followedId)
         {
             using var db = contextFactory.CreateDbContext();
-            logger.LogInformation(followedId + "!!!!!");
             string followerId = userManager.GetUserId(User);
             if (followerId == followedId)
             {
@@ -79,32 +78,25 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost]
         public async Task<IActionResult> RespondToFollowRequest(string senderId, bool accept)
         {
-            logger.LogWarning("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!respond entered");
 
-            // 1. Wrap in 'using' to safely manage the context lifecycle
             using var db = await contextFactory.CreateDbContextAsync();
             var receiverId = userManager.GetUserId(User);
 
-            // Use FirstOrDefaultAsync for clean async execution
             var connection = await db.UserConnections
                 .FirstOrDefaultAsync(c => c.UserSentId == senderId && c.UserReceivedId == receiverId && c.Status == ConnectionStatus.Pending);
 
             string status = "Pending";
-            logger.LogWarning("!!!!" + (connection == null) + "!!!!!");
             if (connection != null)
             {
                 connection.Status = accept ? ConnectionStatus.Accepted : ConnectionStatus.Rejected;
                 status = connection.Status.ToString();
 
-                // Pass the identical 'db' instance to the service
                 ProjectService projectService = new ProjectService(db, HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>());
-                logger.LogWarning("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!respond entered" + status);
 
                 if (connection.Status == ConnectionStatus.Rejected)
                 {
                     db.UserConnections.Remove(connection);
 
-                    // Delete notification internally updates the db tracker
                     await projectService.DeleteNotification(connection.UserSentId, connection.UserReceivedId, NotificationType.FollowPendingRequest);
                     status = "Rejected";
                 }
@@ -112,12 +104,10 @@ namespace Spark_SocialMediaApp.Controllers
                 {
                     db.UserConnections.Update(connection);
 
-                    // Edit notification internally updates the db tracker
                     await projectService.EditNotificationFromPendingToFollow(connection.UserSentId, connection.UserReceivedId, NotificationType.Follow, " followed you.");
                     status = "Accepted";
                 }
 
-                // 2. CRITICAL FIX: You MUST await this call so it finishes writing to the DB before redirecting!
                 await db.SaveChangesAsync();
             }
 

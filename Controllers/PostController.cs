@@ -50,7 +50,7 @@ namespace Spark_SocialMediaApp.Controllers
 
             var userFollowing = db.UserConnections
                .Where(u => u.UserSentId == userManager.GetUserId(User))
-               .Where(c => c.Status == ConnectionStatus.Accepted)
+               .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)
                .Select(c => c.UserReceivedId).ToList();
 
             if(user!=null)
@@ -259,11 +259,23 @@ namespace Spark_SocialMediaApp.Controllers
                             PostId = spark.Id, 
                             TagId = existingTag.Id
                         });
+
+
+                        //add to user's tags
+                       
+                        var existingUserTag = db.UserTags.FirstOrDefault(ut => ut.UserId == spark.AuthorId && ut.TagId == existingTag.Id);
+                        if (existingUserTag == null)
+                        {
+                            db.UserTags.Add(new UserTags { UserId = spark.AuthorId, TagId = existingTag.Id, Count = 1 });
+                        }
+                        else
+                        {
+                            existingUserTag.Count++;
+                            db.UserTags.Update(existingUserTag);
+                        }
+                            
+                        
                     }
-                }
-                else
-                {
-                    logger.LogWarning("Tags string was provided but no valid tags were parsed: " + tags);
                 }
             }
 
@@ -527,6 +539,27 @@ namespace Spark_SocialMediaApp.Controllers
                     await projectService.DeleteNotification(post.AuthorId, post.ParentPost.AuthorId, NotificationType.Repost, post.ParentPost);
                 }
 
+                //remove from user's tags
+                if(post.Tags != null)
+                {foreach (var tag in post.Tags)
+                    {
+                        var existingUserTag = db.UserTags.FirstOrDefault(ut => ut.UserId == post.AuthorId && ut.TagId == tag.TagId);
+                        if (existingUserTag != null)
+                        {
+                            existingUserTag.Count--;
+                            if (existingUserTag.Count <= 0)
+                            {
+                                db.UserTags.Remove(existingUserTag);
+                            }
+                            else
+                            {
+                                db.UserTags.Update(existingUserTag);
+                            }
+                        }
+                    }
+                }
+
+
                 db.Posts.Remove(post);
                 await db.SaveChangesAsync();
             }
@@ -556,8 +589,25 @@ namespace Spark_SocialMediaApp.Controllers
                 db.LikedPosts.Add(new LikedPost { PostId = postId, UserId = userId });
                 isLikedNow = true;
 
+                //add to user's tags
+                if(post.Tags != null)
+                {foreach (var tag in post.Tags)
+                    {
+                        var existingUserTag = db.UserTags.FirstOrDefault(ut => ut.UserId == userId && ut.TagId == tag.TagId);
+                        if (existingUserTag == null)
+                        {
+                            db.UserTags.Add(new UserTags { UserId = userId, TagId = tag.TagId, Count = 1 });
+                        }
+                        else
+                        {
+                            existingUserTag.Count++;
+                            db.UserTags.Update(existingUserTag);
+                        }
+                    }
+                }
+
                 //send notification
-                
+
                 await projectService.CreateNotification(userId, post.AuthorId, NotificationType.Like, post);
             }
             else
@@ -565,6 +615,27 @@ namespace Spark_SocialMediaApp.Controllers
                 // -> remove like
                 db.LikedPosts.Remove(existingLike);
                 isLikedNow = false;
+
+                //remove from user's tags
+                if (post.Tags != null)
+                {
+                    foreach (var tag in post.Tags)
+                    {
+                        var existingUserTag = db.UserTags.FirstOrDefault(ut => ut.UserId == userId && ut.TagId == tag.TagId);
+                        if (existingUserTag != null)
+                        {
+                            existingUserTag.Count--;
+                            if (existingUserTag.Count <= 0)
+                            {
+                                db.UserTags.Remove(existingUserTag);
+                            }
+                            else
+                            {
+                                db.UserTags.Update(existingUserTag);
+                            }
+                        }
+                    }
+                }
 
                 //remove notification
                 await projectService.DeleteNotification(userId, post.AuthorId, NotificationType.Like, post);
@@ -621,13 +692,30 @@ namespace Spark_SocialMediaApp.Controllers
 
         //saved posts
         [Authorize]
-        public IActionResult Saved()
+        public async Task<IActionResult> Saved()
         {
             using var db = contextFactory.CreateDbContext();
             var userId = userManager.GetUserId(User);
-            var savedPosts = db.SavedPosts.All(s => s.UserId == userId);
+            var savedPosts = db.Posts.Include(p => p.SavedByUsers)
+                .Where(p => p.SavedByUsers.Any(s => s.UserId == userId))
+                .Include(c => c.Comments)
+                .Include(a => a.Author).ThenInclude(a => a.Profile)
+                .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToList();
 
-            return View(savedPosts);
+            List<PostViewModel> postsViewModel = new List<PostViewModel>();
+
+            foreach (Post? post in savedPosts)
+            {
+                ProjectService projectService = new ProjectService(db, _env);
+                PostViewModel postViewModel = await projectService.CreatePostViewModel(post, userId);
+                postsViewModel.Add(postViewModel);
+            }
+
+            ViewBag.SavedPosts = postsViewModel;
+
+            return View();
         }
 
         //reblog
@@ -643,7 +731,6 @@ namespace Spark_SocialMediaApp.Controllers
 
             var userId = userManager.GetUserId(User);
             var existingRepost= db.Posts.FirstOrDefault(l => l.AuthorId == userId && l.ParentPost == post);
-            //!!! tba text media privacy settings reqoutes and content filters
             ProjectService projectService = new ProjectService(db, _env);
             if (existingRepost == null)
             {

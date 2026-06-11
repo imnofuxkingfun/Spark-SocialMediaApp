@@ -1,6 +1,36 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    ViewData["Title"] = "Saved";
+    var userFollowing = ViewBag.Following as List<string> ?? new List<string>();
+    var postsToDisplay = ViewBag.SavedPosts as List<PostViewModel> ?? new List<PostViewModel>();
+
 }
-<h2>Saved</h2>
+
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="spark-post-feed">
+
+            <!--empty div to stay under top bar at the start-->
+            <div style="height:12vh"></div>
+
+
+            <div class="spark-posts-feed">
+                @foreach (var post in postsToDisplay)
+                {
+                    var previewModel = new
+                    {
+                        PostViewModel = post,
+                        UserFollowing = userFollowing
+                    };
+                    <partial name="PostPreviewPartial" model="previewModel" />
+                }
+                <div class="spark-end-feed">
+                    <h5>Oops... end of the road!</h5>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+

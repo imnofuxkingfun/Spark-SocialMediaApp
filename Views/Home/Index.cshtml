@@ -1,17 +1,30 @@
 ﻿@{
     ViewData["Title"] = "Home";
-    var posts = ViewBag.Posts as List<PostViewModel> ?? new List<PostViewModel>();
     var userFollowing = ViewBag.Following as List<string> ?? new List<string>();
+
+    var currentFeed = ViewBag.CurrentFeed as string ?? "following";
+    var postsToDisplay = currentFeed == "yourTags"
+        ? (ViewBag.yourTagsPosts as List<PostViewModel> ?? new List<PostViewModel>())
+        : (ViewBag.yourFollowingPosts as List<PostViewModel> ?? new List<PostViewModel>());
 }
 <!--top bar-->
 <div class="spark-top-bar glass-effect" role="group">
-    <button type="button" class="spark-top-bar-btn" onClick="showFollowing(event)">Following</button>
-    <button type="button" class="spark-top-bar-btn" onClick="showYourTags(event)">Your Tags</button>
-    <button type="button" class="spark-top-bar-btn-svg" onclick="settingsPopUp()">
-        <svg width=" 48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path id="spark-top-bar-btn-svg-fill" fill-rule="evenodd" clip-rule="evenodd" d="M24.15 30C24.4943 28.3045 25.4141 26.7802 26.7536 25.6854C28.0931 24.5905 29.77 23.9924 31.5 23.9924C33.23 23.9924 34.9069 24.5905 36.2464 25.6854C37.5859 26.7802 38.5057 28.3045 38.85 30H43.5C43.8978 30 44.2794 30.158 44.5607 30.4393C44.842 30.7206 45 31.1021 45 31.5C45 31.8978 44.842 32.2793 44.5607 32.5606C44.2794 32.8419 43.8978 33 43.5 33H38.85C38.5057 34.6954 37.5859 36.2197 36.2464 37.3145C34.9069 38.4094 33.23 39.0075 31.5 39.0075C29.77 39.0075 28.0931 38.4094 26.7536 37.3145C25.4141 36.2197 24.4943 34.6954 24.15 33H4.5C4.10218 33 3.72064 32.8419 3.43934 32.5606C3.15804 32.2793 3 31.8978 3 31.5C3 31.1021 3.15804 30.7206 3.43934 30.4393C3.72064 30.158 4.10218 30 4.5 30H24.15ZM23.85 18C23.5057 19.6954 22.5859 21.2197 21.2464 22.3145C19.9069 23.4094 18.23 24.0075 16.5 24.0075C14.77 24.0075 13.0931 23.4094 11.7536 22.3145C10.4141 21.2197 9.49427 19.6954 9.15 18H4.5C4.10218 18 3.72064 17.8419 3.43934 17.5606C3.15804 17.2793 3 16.8978 3 16.5C3 16.1021 3.15804 15.7206 3.43934 15.4393C3.72064 15.158 4.10218 15 4.5 15H9.15C9.49427 13.3045 10.4141 11.7802 11.7536 10.6854C13.0931 9.59053 14.77 8.99243 16.5 8.99243C18.23 8.99243 19.9069 9.59053 21.2464 10.6854C22.5859 11.7802 23.5057 13.3045 23.85 15H43.5C43.8978 15 44.2794 15.158 44.5607 15.4393C44.842 15.7206 45 16.1021 45 16.5C45 16.8978 44.842 17.2793 44.5607 17.5606C44.2794 17.8419 43.8978 18 43.5 18H23.85ZM12 16.5C12 17.0909 12.1164 17.6761 12.3425 18.222C12.5687 18.768 12.9002 19.2641 13.318 19.6819C13.7359 20.0998 14.232 20.4313 14.7779 20.6574C15.3239 20.8836 15.9091 21 16.5 21C17.0909 21 17.6761 20.8836 18.2221 20.6574C18.768 20.4313 19.2641 20.0998 19.682 19.6819C20.0998 19.2641 20.4313 18.768 20.6575 18.222C20.8836 17.6761 21 17.0909 21 16.5C21 15.3065 20.5259 14.1619 19.682 13.318C18.8381 12.4741 17.6935 12 16.5 12C15.3065 12 14.1619 12.4741 13.318 13.318C12.4741 14.1619 12 15.3065 12 16.5ZM36 31.5C36 30.3065 35.5259 29.1619 34.682 28.318C33.8381 27.4741 32.6935 27 31.5 27C30.3065 27 29.1619 27.4741 28.318 28.318C27.4741 29.1619 27 30.3065 27 31.5C27 32.6934 27.4741 33.838 28.318 34.6819C29.1619 35.5258 30.3065 36 31.5 36C32.6935 36 33.8381 35.5258 34.682 34.6819C35.5259 33.838 36 32.6934 36 31.5Z"
-                  fill="#A55AFC" />
+    <!-- reloading page based on chosen feed -->
+    <button type="button"
+            class="spark-top-bar-btn @(currentFeed == "following" ? "active" : "")"
+            onclick="window.location.href='@Url.Action("Index", "Home", new { feed = "following" })'">
+        Following
+    </button>
 
+    <button type="button"
+            class="spark-top-bar-btn @(currentFeed == "yourTags" ? "active" : "")"
+            onclick="window.location.href='@Url.Action("Index", "Home", new { feed = "yourTags" })'">
+        Your Tags
+    </button>
+
+    <button type="button" class="spark-top-bar-btn-svg" onclick="settingsPopUp()">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://w3.org">
+            <path id="spark-top-bar-btn-svg-fill" fill-rule="evenodd" clip-rule="evenodd" d="M24.15 30C24.4943 28.3045 25.4141 26.7802 26.7536 25.6854C28.0931 24.5905 29.77 23.9924 31.5 23.9924C33.23 23.9924 34.9069 24.5905 36.2464 25.6854C37.5859 26.7802 38.5057 28.3045 38.85 30H43.5C43.8978 30 44.2794 30.158 44.5607 30.4393C44.842 30.7206 45 31.1021 45 31.5C45 31.8978 44.842 32.2793 44.5607 32.5606C44.2794 32.8419 43.8978 33 43.5 33H38.85C38.5057 34.6954 37.5859 36.2197 36.2464 37.3145C34.9069 38.4094 33.23 39.0075 31.5 39.0075C29.77 39.0075 28.0931 38.4094 26.7536 37.3145C25.4141 36.2197 24.4943 34.6954 24.15 33H4.5C4.10218 33 3.72064 32.8419 3.43934 32.5606C3.15804 32.2793 3 31.8978 3 31.5C3 31.1021 3.15804 30.7206 3.43934 30.4393C3.72064 30.158 4.10218 30 4.5 30H24.15ZM23.85 18C23.5057 19.6954 22.5859 21.2197 21.2464 22.3145C19.9069 23.4094 18.23 24.0075 16.5 24.0075C14.77 24.0075 13.0931 23.4094 11.7536 22.3145C10.4141 21.2197 9.49427 19.6954 9.15 18H4.5C4.10218 18 3.72064 17.8419 3.43934 17.5606C3.15804 17.2793 3 16.8978 3 16.5C3 16.1021 3.15804 15.7206 3.43934 15.4393C3.72064 15.158 4.10218 15 4.5 15H9.15C9.49427 13.3045 10.4141 11.7802 11.7536 10.6854C13.0931 9.59053 14.77 8.99243 16.5 8.99243C18.23 8.99243 19.9069 9.59053 21.2464 10.6854C22.5859 11.7802 23.5057 13.3045 23.85 15H43.5C43.8978 15 44.2794 15.158 44.5607 15.4393C44.842 15.7206 45 16.1021 45 16.5C45 16.8978 44.842 17.2793 44.5607 17.5606C44.2794 17.8419 43.8978 18 43.5 18H23.85ZM12 16.5C12 17.0909 12.1164 17.6761 12.3425 18.222C12.5687 18.768 12.9002 19.2641 13.318 19.6819C13.7359 20.0998 14.232 20.4313 14.7779 20.6574C15.3239 20.8836 15.9091 21 16.5 21C17.0909 21 17.6761 20.8836 18.2221 20.6574C18.768 20.4313 19.2641 20.0998 19.682 19.6819C20.0998 19.2641 20.4313 18.768 20.6575 18.222C20.8836 17.6761 21 17.0909 21 16.5C21 15.3065 20.5259 14.1619 19.682 13.318C18.8381 12.4741 17.6935 12 16.5 12C15.3065 12 14.1619 12.4741 13.318 13.318C12.4741 14.1619 12 15.3065 12 16.5ZM36 31.5C36 30.3065 35.5259 29.1619 34.682 28.318C33.8381 27.4741 32.6935 27 31.5 27C30.3065 27 29.1619 27.4741 28.318 28.318C27.4741 29.1619 27 30.3065 27 31.5C27 32.6934 27.4741 33.838 28.318 34.6819C29.1619 35.5258 30.3065 36 31.5 36C32.6935 36 33.8381 35.5258 34.682 34.6819C35.5259 33.838 36 32.6934 36 31.5Z" fill="#A55AFC" />
         </svg>
     </button>
 </div>
@@ -23,52 +36,24 @@
             <!--empty div to stay under top bar at the start-->
             <div style="height:12vh"></div>
 
-            <div id="following" style="display: none;">
-                <!-- following posts feed -->
 
-                <div class="spark-posts-feed">
-                    @foreach (var post in posts.OrderByDescending(p => p.Post?.CreatedAt))
+            <div class="spark-posts-feed">
+                @foreach (var post in postsToDisplay)
+                {
+                    var previewModel = new
                     {
-                        var previewModel = new
-                        {
-                            PostViewModel = post,
-                            UserFollowing = userFollowing
-                        };
-                        <partial name="PostPreviewPartial" model="previewModel" />
-                    }
-                    <div class="spark-end-feed">
-                        <h5>Oops... end of the road! Follow more people to see their content</h5>
-                    </div>
+                        PostViewModel = post,
+                        UserFollowing = userFollowing
+                    };
+                    <partial name="PostPreviewPartial" model="previewModel" />
+                }
+                <div class="spark-end-feed">
+                    <h5>Oops... end of the road!</h5>
                 </div>
-
             </div>
 
-            <div id="yourTags" style="display: none;">
-                <h2>tags</h2>
-            </div>
         </div>
+
     </div>
 </div>
 
-
-@section Scripts{
-    <script>
-        function showFollowing(){
-            document.getElementById('following').style.display = 'block';
-            document.getElementById('yourTags').style.display = 'none';
-             document.querySelectorAll('.spark-top-bar-btn')[0].classList.add('active');
-            document.querySelectorAll('.spark-top-bar-btn')[1].classList.remove('active');
-    }
-
-        function showYourTags(){
-                document.getElementById('following').style.display = 'none';
-                document.getElementById('yourTags').style.display = 'block';
-                 document.querySelectorAll('.spark-top-bar-btn')[0].classList.remove('active');
-            document.querySelectorAll('.spark-top-bar-btn')[1].classList.add('active');
-    }
-        // Show following form by default
-    document.addEventListener('DOMContentLoaded', function() {
-        showFollowing();
-    });
-</script>
-}

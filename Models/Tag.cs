@@ -8,6 +8,7 @@ namespace Spark_SocialMediaApp.Models
         public string Id { get; set; }
 
         public virtual ICollection<PostTags> Posts { get; set; }
+        public virtual ICollection<UserTags> Users { get; set; }
 
     }
 }

@@ -39,9 +39,9 @@
                             <div class="spark-owner-actions">
                             @if (!UserFollowing.Contains(Model.AuthorId ?? string.Empty))
                             {
-                                <form asp-action="Index" asp-controller="Notification">
-                                    <button type="submit" class="spark-follow-btn">Follow</button>
-                                </form>
+                                    <form asp-action="SendFollowRequest" asp-controller="Connections" class="follow-button" data-author-id="@Model.AuthorId">
+                                        <button type="submit" class="spark-follow-btn">Follow</button>
+                                    </form>
                             }
                             @if (isOwnerOrAdmin)
                             {
@@ -218,4 +218,36 @@
             document.removeEventListener('keydown', handleKeyPress);
         }
     }
+
+         //follow requests
+            document.querySelectorAll('.follow-button').forEach(form => {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const button = this.querySelector('.spark-follow-btn');
+            if (!button || button.disabled) return;
+
+            button.disabled = true;
+
+            const authorId = this.getAttribute('data-author-id');
+                const endpoint = `/Connections/SendFollowRequest?followedId=${authorId}`;
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                    }
+                });
+
+                if (response.ok) {
+                    this.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error handling the follow action:', error);
+            } finally {
+                if (button) button.disabled = false;
+            }
+        });
+    });
 </script>

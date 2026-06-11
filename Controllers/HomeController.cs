@@ -28,61 +28,222 @@ namespace Spark_SocialMediaApp.Controllers
             this._env = env;
         }
 
-        public async Task<IActionResult> Index() // = following + tag !!!
+        private async Task<List<PostViewModel>> CreatePostViewModelList (ApplicationDbContext db, List<Post> posts, string userId)
         {
-            using var db = contextFactory.CreateDbContext();
-            User user = db.Users.Find(userManager.GetUserId(User));
-
-            var userFollowing = db.UserConnections
-                .Where(u => u.UserSentId == userManager.GetUserId(User))
-                .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)
-                .Select(c => c.UserReceivedId).ToList();
-
-            userFollowing.Add(userManager.GetUserId(User));
-
-            ViewBag.Following = userFollowing;
-
-            //!!! to implement following feed
-            var posts = db.Posts
-                .Include(c => c.Comments)
-                .Include(a => a.Author).ThenInclude(a => a.Profile)
-                .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
-                .ToList();
-
             List<PostViewModel> postsViewModel = new List<PostViewModel>();
 
             foreach (Post post in posts)
             {
                 ProjectService projectService = new ProjectService(db, _env);
-                PostViewModel postViewModel = await projectService.CreatePostViewModel(post, user.Id);
+                PostViewModel postViewModel = await projectService.CreatePostViewModel(post, userId);
                 postsViewModel.Add(postViewModel);
             }
 
-            ViewBag.Posts = postsViewModel;
-            return View();
+            return postsViewModel;
         }
 
-
-        public IActionResult Explore() //for you + trending !!!
+        public async Task<IActionResult> Index(string feed = "following") // = following + your tags
         {
+            ViewBag.CurrentFeed = feed.ToLower();
+
             using var db = contextFactory.CreateDbContext();
+            var user = db.Users.Find(userManager.GetUserId(User));
+
             var userFollowing = db.UserConnections
-                .Where(u => u.UserSentId == userManager.GetUserId(User))
+                .Where(u => u.UserSentId == user.Id)
                 .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)
                 .Select(c => c.UserReceivedId).ToList();
 
-            userFollowing.Add(userManager.GetUserId(User));
+            userFollowing.Add(user.Id);
 
             ViewBag.Following = userFollowing;
 
-            //!!! to implement following feed
-            var posts = db.Posts
+            //post user is actually allowed to see (minus pending)
+            var userFollowingAccepted = db.UserConnections
+                .Where(u => u.UserSentId == user.Id)
+                .Where(c => c.Status == ConnectionStatus.Accepted)
+                .Select(c => c.UserReceivedId).ToList();
+            userFollowingAccepted.Add(user.Id);
+
+            Dictionary<string, bool> userFilters = db.UserSettings?.Find(user.Id)?.ContentFilters ?? UserSettings.ContentFilterInit();
+            bool userValue;
+
+
+            if (feed=="following")
+            {
+                //people the user follows feed chronological
+                var posts = db.Posts
+                    .Where(p => userFollowingAccepted.Contains(p.AuthorId))
+                    .Include(c => c.Comments)
+                    .Include(a => a.Author).ThenInclude(a => a.Profile)
+                    .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .ToList();
+
+                var filteredPosts = posts
+                .Where(p => !p.ContentFilters.Any(
+                    postFilter => postFilter.Value == true
+                    && userFilters.TryGetValue(postFilter.Key, out userValue) &&
+                    userValue == true
+                ))
+                .Take(100) //max 100
+                .ToList();
+
+
+                ViewBag.yourFollowingPosts = await CreatePostViewModelList(db, filteredPosts, user.Id);
+            }
+            else
+
+            //posts with as many of the user's tags as possible, ordered by number of matching tags and then chronologically
+           { var tags = db.UserTags
+                .Where(ut => ut.UserId == user.Id)
+                .OrderByDescending(ut => ut.Count) //most frequented tags
+                .Select(ut => ut.TagId)
+                .ToList();
+
+            var tagPosts = db.Posts
+                .Where(p => p.Tags.Any(pt => tags.Contains(pt.TagId)))
+                .Where(p => p.Privacy == PrivacySettings.Public || (p.Privacy == PrivacySettings.Private && userFollowingAccepted.Contains(p.AuthorId))) 
+                .Where(p => p.AuthorId != user.Id)//only public or followers
+                .Select(p => new
+                {
+                    Post = p,
+                    MatchCount = p.Tags.Count(pt => tags.Contains(pt.TagId))
+                })
+                .OrderByDescending(x => x.MatchCount)
+                .ThenByDescending(x => x.Post.CreatedAt)
+                .Select(x => x.Post)
                 .Include(c => c.Comments)
                 .Include(a => a.Author).ThenInclude(a => a.Profile)
                 .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
                 .ToList();
 
-            ViewBag.Posts = posts;
+                var filteredPosts = tagPosts
+                .Where(p => !p.ContentFilters.Any(
+                    postFilter => postFilter.Value == true
+                    && userFilters.TryGetValue(postFilter.Key, out userValue) &&
+                    userValue == true
+                ))
+                .Take(100) //max 100
+                .ToList();
+
+                ViewBag.yourTagsPosts = await CreatePostViewModelList(db, filteredPosts, user.Id);
+            }
+
+            return View();
+        }
+
+
+        public async Task<IActionResult> Explore(string feed = "foryou") //for you + trending 
+        {
+            ViewBag.CurrentFeed = feed.ToLower();
+
+            using var db = contextFactory.CreateDbContext();
+            User user = db.Users.Find(userManager.GetUserId(User));
+
+            var userFollowing = db.UserConnections
+                .Where(u => u.UserSentId == user.Id)
+                .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)
+                .Select(c => c.UserReceivedId).ToList();
+
+            userFollowing.Add(user.Id);
+
+            ViewBag.Following = userFollowing;
+
+            //post user is actually allowed to see (minus pending)
+            var userFollowingAccepted = db.UserConnections
+                .Where(u => u.UserSentId == user.Id)
+                .Where(c => c.Status == ConnectionStatus.Accepted)
+                .Select(c => c.UserReceivedId).ToList();
+
+
+            Dictionary<string, bool> userFilters = db.UserSettings?.Find(user.Id)?.ContentFilters ?? UserSettings.ContentFilterInit();
+            bool userValue;
+
+
+            //for you
+            // posts that have at least one tag that the user has + popularity (number of comments + number of likes) + recency
+            // + posts from following's following
+            if (feed.ToLower() == "foryou")
+            {
+                var tagIds = db.UserTags
+                .Where(ut => ut.UserId == user.Id)
+                .Select(ut => ut.TagId)
+                .ToList();
+
+                var followingNetwork = db.UserConnections
+                    .Where(u => userFollowing.Contains(u.UserSentId))
+                    .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)
+                    .Select(c => c.UserReceivedId).ToList();
+
+                var tagAndNetworkPosts = db.Posts
+                    .Where(p => p.Tags.Any(pt => tagIds.Contains(pt.TagId)) || followingNetwork.Contains(p.AuthorId))
+                    .Where(p => p.Privacy == PrivacySettings.Public || (p.Privacy == PrivacySettings.Private && userFollowingAccepted.Contains(p.AuthorId)))
+                    .Where(p => p.AuthorId != user.Id); //only public or followers
+
+
+                var forYouPosts = tagAndNetworkPosts
+                    .Select(p => new
+                    {
+                        Post = p,
+                        Score = (p.Comments.Count + p.LikedByUsers.Count) * 5 +
+                        (p.Tags.Count(pt => tagIds.Contains(pt.TagId))) * 4 +
+                        (followingNetwork.Contains(p.AuthorId) ? 1 : 0) * 2 -
+                        (EF.Functions.DateDiffDay(p.CreatedAt, DateTime.UtcNow)) * 3 //popularity weighted most, then tag match, then network, then recency
+                    })
+                    .OrderByDescending(x => x.Score)
+                    .ThenByDescending(x => x.Post.CreatedAt)
+                    .Select(x => x.Post)
+                    .Include(c => c.Comments)
+                    .Include(a => a.Author).ThenInclude(a => a.Profile)
+                    .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
+                    .ToList();
+
+                var filteredPosts = forYouPosts
+                    .Where(p => !p.ContentFilters.Any(
+                        postFilter => postFilter.Value == true
+                        && userFilters.TryGetValue(postFilter.Key, out userValue) &&
+                        userValue == true
+                    ))
+                    .Take(100) //max 100
+                    .ToList();
+
+                ViewBag.forYouPosts = await CreatePostViewModelList(db, filteredPosts, user.Id);
+            }
+            else
+            {
+
+                //trending
+                var trendingPosts = db.Posts
+                    .Where(p => p.Privacy == PrivacySettings.Public || (p.Privacy == PrivacySettings.Private && userFollowingAccepted.Contains(p.AuthorId))) //only public or followers
+                    .Where(p => p.AuthorId != user.Id)
+                    .Where(p => p.CreatedAt >= DateTime.Now.AddDays(-7)) //last 7 days
+                    .Select(p => new
+                    {
+                        Post = p,
+                        Score = (p.Comments.Count + p.LikedByUsers.Count) * 5 -
+                        (EF.Functions.DateDiffDay(p.CreatedAt, DateTime.UtcNow)) * 3 //popularity weighted most, then recency
+                    })
+                    .OrderByDescending(x => x.Score)
+                    .ThenByDescending(x => x.Post.CreatedAt)
+                    .Select(x => x.Post)
+                    .Include(c => c.Comments)
+                    .Include(a => a.Author).ThenInclude(a => a.Profile)
+                    .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
+                    .ToList();
+
+                var filteredPosts = trendingPosts
+                    .Where(p => !p.ContentFilters.Any(
+                        postFilter => postFilter.Value == true
+                        && userFilters.TryGetValue(postFilter.Key, out userValue) &&
+                        userValue == true
+                    ))
+                    .Take(100) //max 100
+                    .ToList();
+
+                ViewBag.trendingPosts = await CreatePostViewModelList(db, filteredPosts, user.Id);
+            }
+
             return View();
         }
 

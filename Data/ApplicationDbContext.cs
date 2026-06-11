@@ -190,13 +190,13 @@ namespace Spark_SocialMediaApp.Data
                 .HasOne(pt => pt.Post)
                 .WithMany(p => p.Tags)
                 .HasForeignKey(pt => pt.PostId)
-                .OnDelete(DeleteBehavior.Cascade); //delete tags on post delete
+                .OnDelete(DeleteBehavior.NoAction); 
 
             modelBuilder.Entity<PostTags>()
                 .HasOne(pt => pt.Tag)
                 .WithMany(t => t.Posts)
                 .HasForeignKey(pt => pt.TagId)
-                .OnDelete(DeleteBehavior.Restrict); 
+                .OnDelete(DeleteBehavior.NoAction); 
 
             modelBuilder.Entity<PostTags>(entity =>
             {
@@ -204,6 +204,26 @@ namespace Spark_SocialMediaApp.Data
                 entity.Property(lp => lp.PostId).HasMaxLength(450);
             });
 
+            modelBuilder.Entity<UserTags>()
+                .HasKey(ut => new { ut.UserId, ut.TagId });
+
+            modelBuilder.Entity<UserTags>()
+                .HasOne(ut => ut.User)
+                .WithMany(ut => ut.Tags)
+                .HasForeignKey(ut => ut.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<UserTags>()
+                .HasOne(ut => ut.Tag)
+                .WithMany(ut => ut.Users)
+                .HasForeignKey(ut => ut.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            modelBuilder.Entity<UserTags>(entity =>
+            {
+                entity.Property(lp => lp.TagId).HasMaxLength(450);
+                entity.Property(lp => lp.UserId).HasMaxLength(450);
+            });
         }
 
         //user related
@@ -227,6 +247,7 @@ namespace Spark_SocialMediaApp.Data
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<PostTags> PostTags { get; set; }
+        public DbSet<UserTags> UserTags { get; set; }
         public DbSet<Tag> Tags { get; set; }
     }
 

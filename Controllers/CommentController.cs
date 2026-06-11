@@ -75,7 +75,6 @@ namespace Spark_SocialMediaApp.Controllers
         public async Task<IActionResult> EditComment(string postId, string id, string? text)
         {
             using var db = contextFactory.CreateDbContext();
-            logger.LogWarning("!!!!  ", text);
             var comment = db.Comments.Find(id);
             if (comment == null || DateTime.UtcNow - comment.CreatedAt > TimeSpan.FromMinutes(15))
             {

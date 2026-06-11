@@ -912,11 +912,14 @@ html, body {
 
 .spark-blog-title {
     color: white;
-    font-size: 2rem;
+    font-size: 1.85rem;
     font-weight: 400;
+    max-width: 100%; 
     margin: 0;
-    word-wrap: break-word;
+    overflow-wrap: break-word; 
+    word-break: break-word;
 }
+
 
 .spark-blog-excerpt {
     color: white;
