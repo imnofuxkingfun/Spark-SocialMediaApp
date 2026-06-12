@@ -28,8 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Migrations\" />
-    <Folder Include="wwwroot\uploads\banner\" />
+    <Folder Include="wwwroot\uploads\" />
   </ItemGroup>
 
 </Project>

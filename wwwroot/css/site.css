@@ -1574,7 +1574,6 @@ html, body {
         content: '';
         flex: 1;
         height: 1px;
-        background: linear-gradient(to right, rgba(0,0,0,0), var(--spark-accent-border), rgba(0,0,0,0));
     }
 
 .profile-section-label {

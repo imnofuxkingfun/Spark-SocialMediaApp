@@ -1,87 +1,91 @@
 @page
 @model LoginModel
-
 @{
     ViewData["Title"] = "Log in";
 }
 
-<h1>@ViewData["Title"]</h1>
 <div class="container">
     <div class="row justify-content-center">
         <div class="spark-post-feed">
-            <div class=" spark-posts-feed">
-                <div style="height:12vh"></div>
-        <section>
-            <form id="account" method="post">
-                <h2>Use a local account to log in.</h2>
-                <hr />
-                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-                <div class="form-floating mb-3">
-                    <input asp-for="Input.UserName" class="form-control" autocomplete="username" aria-required="true" placeholder="Username" />
-                    <label asp-for="Input.UserName" class="form-label">UserName</label>
-                    <span asp-validation-for="Input.UserName" class="text-danger"></span>
-                </div>
-                <div class="form-floating mb-3">
-                    <input asp-for="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="Password" />
-                    <label asp-for="Input.Password" class="form-label">Password</label>
-                    <span asp-validation-for="Input.Password" class="text-danger"></span>
-                </div>
-                <div class="checkbox mb-3">
-                    <label asp-for="Input.RememberMe" class="form-label">
-                        <input class="form-check-input" asp-for="Input.RememberMe" />
+            <div style="height:12vh"></div>
+
+            <div class="spark-card-container" style="padding: 2.5rem;">
+
+                <!-- Title -->
+                <h2 class="spark-post-name" style="font-family:'New Rocker',cursive; font-size:2.4rem; margin-bottom:0.25rem;">Welcome back</h2>
+                <p class="spark-post-username" style="margin-bottom:2rem;">Sign in to your account</p>
+
+                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert" style="margin-bottom:1rem;"></div>
+
+                <form id="account" method="post" style="display:flex; flex-direction:column; gap:1.25rem;">
+
+                    <!-- Username -->
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <label asp-for="Input.UserName" class="profile-label">Username</label>
+                        <input asp-for="Input.UserName" class="spark-comment-input"
+                               autocomplete="username" aria-required="true" placeholder="your username" />
+                        <span asp-validation-for="Input.UserName" class="text-danger" style="font-size:0.85rem;"></span>
+                    </div>
+
+                    <!-- Password -->
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <label asp-for="Input.Password" class="profile-label">Password</label>
+                        <input asp-for="Input.Password" class="spark-comment-input"
+                               autocomplete="current-password" aria-required="true" placeholder="••••••••" />
+                        <span asp-validation-for="Input.Password" class="text-danger" style="font-size:0.85rem;"></span>
+                    </div>
+
+                    <!-- Remember me -->
+                    <label style="display:flex; align-items:center; gap:10px; color:var(--spark-text-muted); font-family:'Trocchi',serif; font-size:1rem; cursor:pointer;">
+                        <input class="form-check-input" asp-for="Input.RememberMe" style="accent-color:var(--spark-accent); width:16px; height:16px;" />
                         @Html.DisplayNameFor(m => m.Input.RememberMe)
                     </label>
-                </div>
-                <div>
-                    <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
-                <div>
-                    <p>
-                        <a id="forgot-password" asp-page="./ForgotPassword">Forgot your password?</a>
-                    </p>
-                    <p>
-                        <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Register as a new user</a>
-                    </p>
-                    <p>
-                        <a id="resend-confirmation" asp-page="./ResendEmailConfirmation">Resend email confirmation</a>
-                    </p>
-                </div>
-            </form>
-        </section>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
-            @{
-                if ((Model.ExternalLogins?.Count ?? 0) == 0)
-                {
-                    <div>
-                        <p>
-                            There are no external authentication services configured. See this <a href="https://go.microsoft.com/fwlink/?LinkID=532715">article
-                            about setting up this ASP.NET application to support logging in via external services</a>.
-                        </p>
+
+                    <!-- Submit -->
+                    <button id="login-submit" type="submit" class="spark-follow-btn"
+                            style="font-size:1.2rem; padding:8px 0; width:100%; border-radius:6px;">
+                        Log in
+                    </button>
+
+                    <!-- Links -->
+                    <div style="display:flex; flex-direction:column; gap:6px; margin-top:0.25rem;">
+                        <a asp-page="./ForgotPassword" class="spark-back-link" style="font-size:0.95rem;">Forgot your password?</a>
+                        <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl" class="spark-back-link" style="font-size:0.95rem;">Register as a new user</a>
+                        <a asp-page="./ResendEmailConfirmation" class="spark-back-link" style="font-size:0.95rem;">Resend email confirmation</a>
                     </div>
-                }
-                else
+
+                </form>
+
+                <!-- External logins -->
+                @if ((Model.ExternalLogins?.Count ?? 0) > 0)
                 {
-                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="form-horizontal">
-                        <div>
-                            <p>
-                                @foreach (var provider in Model.ExternalLogins!)
+                    <div class="profile-section-rule" style="margin:1rem 0;">
+                        <span class="profile-section-label">or continue with</span>
+                    </div>
+                    <form id="external-account" asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post"
+                          style="display:flex; justify-content: center; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+                        @foreach (var provider in Model.ExternalLogins!)
+                        {
+
+                            <button type="submit" class="spark-edit-btn" style="height:10vh" name="provider" value="@provider.Name"
+                                    title="Register using your @provider.DisplayName account" style="font-size:1rem;">
+                                @if (provider.Name == "Google")
                                 {
-                                    <button type="submit" class="btn btn-primary" name="provider" value="@provider.Name" title="Log in using your @provider.DisplayName account">@provider.DisplayName</button>
+                                    <svg height="1em" style="flex:none;line-height:1" viewBox="0 0 24 24" width="1em" xmlns="http://www.w3.org/2000/svg"><title>Google</title><path d="M23 12.245c0-.905-.075-1.565-.236-2.25h-10.54v4.083h6.186c-.124 1.014-.797 2.542-2.294 3.569l-.021.136 3.332 2.53.23.022C21.779 18.417 23 15.593 23 12.245z" fill="#4285F4"></path><path d="M12.225 23c3.03 0 5.574-.978 7.433-2.665l-3.542-2.688c-.948.648-2.22 1.1-3.891 1.1a6.745 6.745 0 01-6.386-4.572l-.132.011-3.465 2.628-.045.124C4.043 20.531 7.835 23 12.225 23z" fill="#34A853"></path><path d="M5.84 14.175A6.65 6.65 0 015.463 12c0-.758.138-1.491.361-2.175l-.006-.147-3.508-2.67-.115.054A10.831 10.831 0 001 12c0 1.772.436 3.447 1.197 4.938l3.642-2.763z" fill="#FBBC05"></path><path d="M12.225 5.253c2.108 0 3.529.892 4.34 1.638l3.167-3.031C17.787 2.088 15.255 1 12.225 1 7.834 1 4.043 3.469 2.197 7.062l3.63 2.763a6.77 6.77 0 016.398-4.572z" fill="#EB4335"></path></svg>
                                 }
-                            </p>
-                        </div>
+                                @provider.DisplayName
+                            </button>
+                        }
                     </form>
                 }
-            }
-        </section>
-    </div>
-</div>
+
+            </div>
+
+            <div style="height:4vh"></div>
         </div>
     </div>
+</div>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }

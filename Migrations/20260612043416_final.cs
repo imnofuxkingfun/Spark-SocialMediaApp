@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Spark_SocialMediaApp.Migrations
 {
     /// <inheritdoc />
-    public partial class notifications : Migration
+    public partial class final : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -64,6 +64,17 @@ namespace Spark_SocialMediaApp.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Groupchats", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Tags",
+                columns: table => new
+                {
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Tags", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -181,6 +192,7 @@ namespace Spark_SocialMediaApp.Migrations
                     AuthorId = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Privacy = table.Column<int>(type: "int", nullable: false),
                     ContentFilters = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsHighlighted = table.Column<bool>(type: "bit", nullable: false),
                     ParentPostId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     Discriminator = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: false),
                     Title = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -295,6 +307,31 @@ namespace Spark_SocialMediaApp.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "UserTags",
+                columns: table => new
+                {
+                    UserId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
+                    TagId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
+                    Count = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserTags", x => new { x.UserId, x.TagId });
+                    table.ForeignKey(
+                        name: "FK_UserTags_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserTags_Tags_TagId",
+                        column: x => x.TagId,
+                        principalTable: "Tags",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Comments",
                 columns: table => new
                 {
@@ -379,6 +416,30 @@ namespace Spark_SocialMediaApp.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PostTags",
+                columns: table => new
+                {
+                    PostId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false),
+                    TagId = table.Column<string>(type: "nvarchar(450)", maxLength: 450, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PostTags", x => new { x.PostId, x.TagId });
+                    table.ForeignKey(
+                        name: "FK_PostTags_Posts_PostId",
+                        column: x => x.PostId,
+                        principalTable: "Posts",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PostTags_Tags_TagId",
+                        column: x => x.TagId,
+                        principalTable: "Tags",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "SavedPosts",
                 columns: table => new
                 {
@@ -406,11 +467,11 @@ namespace Spark_SocialMediaApp.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ReceiverId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    SenderId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Text = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ReceiverId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    SenderId = table.Column<string>(type: "nvarchar(450)", nullable: true),
+                    Type = table.Column<int>(type: "int", nullable: true),
+                    Text = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     PostId = table.Column<string>(type: "nvarchar(450)", nullable: true),
                     CommentId = table.Column<string>(type: "nvarchar(450)", nullable: true)
                 },
@@ -545,6 +606,11 @@ namespace Spark_SocialMediaApp.Migrations
                 column: "ParentPostId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PostTags_TagId",
+                table: "PostTags",
+                column: "TagId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_SavedPosts_PostId",
                 table: "SavedPosts",
                 column: "PostId");
@@ -558,6 +624,11 @@ namespace Spark_SocialMediaApp.Migrations
                 name: "IX_UserConnections_UserSentId",
                 table: "UserConnections",
                 column: "UserSentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserTags_TagId",
+                table: "UserTags",
+                column: "TagId");
         }
 
         /// <inheritdoc />
@@ -591,6 +662,9 @@ namespace Spark_SocialMediaApp.Migrations
                 name: "Notifications");
 
             migrationBuilder.DropTable(
+                name: "PostTags");
+
+            migrationBuilder.DropTable(
                 name: "SavedPosts");
 
             migrationBuilder.DropTable(
@@ -603,6 +677,9 @@ namespace Spark_SocialMediaApp.Migrations
                 name: "UserSettings");
 
             migrationBuilder.DropTable(
+                name: "UserTags");
+
+            migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
@@ -610,6 +687,9 @@ namespace Spark_SocialMediaApp.Migrations
 
             migrationBuilder.DropTable(
                 name: "Comments");
+
+            migrationBuilder.DropTable(
+                name: "Tags");
 
             migrationBuilder.DropTable(
                 name: "Posts");
