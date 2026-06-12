@@ -1,4 +1,6 @@
-﻿@model UserProfile
+﻿
+
+@model UserProfile
 @{
     ViewData["Title"] = "Profile";
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -68,26 +70,22 @@
                 <button type="submit" class="spark-delete-btn">Logout</button>
             </form>
         }
-        else if (User.Identity.IsAuthenticated)
+        @if (User.Identity.IsAuthenticated && !isOwner)
         {
-            @if (!userFollowing.Contains(Model.UserId ?? string.Empty))
-            {
-                <form asp-action="SendFollowRequest" asp-controller="Connections"
-                      class="follow-button" data-author-id="@Model.UserId">
-                    <button type="submit" class="spark-follow-btn">Follow</button>
-                </form>
-            }
-            else if (ViewBag.Pending)
-            {
-                <span class="profile-following-badge">Pending</span>
-            }
-            else
-            {
-                <form asp-action="SendFollowRequest" asp-controller="Connections"
-                      class="follow-button" data-author-id="@Model.UserId">
-                    <button type="submit" class="spark-follow-btn">Unfollow</button>
-                </form>
-            }
+            var isFollowingCurrently = userFollowing.Contains(Model.UserId ?? string.Empty);
+            <button type="button"
+                    class="spark-follow-btn"
+                    data-author-id="@Model.UserId"
+                    data-following="@isFollowingCurrently.ToString().ToLower()">
+                @if (!isFollowingCurrently)
+                {
+                    @:Follow
+                }
+                else
+                {
+                    @(ViewBag.Pending == true ? "Pending" : "Unfollow")
+                }
+            </button>
         }
     </div>
 </div>
@@ -127,7 +125,7 @@
                 else
                 {
                     <div class="spark-end-feed">
-                        <h5>No sparks yet.</h5>
+                        <h5>Nothing here yet.</h5>
                     </div>
                 }
                 <div class="spark-end-feed">
@@ -138,33 +136,31 @@
     </div>
 </div>
 
-<style>
-
-
-</style>
-
 <script>
-    document.querySelectorAll('.follow-button').forEach(form => {
-        form.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const button = this.querySelector('.spark-follow-btn');
-            if (!button || button.disabled) return;
-            button.disabled = true;
-            const authorId = this.getAttribute('data-author-id');
-            const endpoint = `/Connections/SendFollowRequest?followedId=${authorId}`;
-            try {
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
-                    }
-                });
-                if (response.ok) this.style.display = 'none';
-            } catch (error) {
-                console.error('Follow error:', error);
-            } finally {
-                if (button) button.disabled = false;
-            }
-        });
+    document.querySelector('.spark-follow-btn')?.addEventListener('click', async function () {
+        const button = this;
+        if (button.disabled) return;
+
+        button.disabled = true;
+        const authorId = button.getAttribute('data-author-id');
+        const isFollowing = button.getAttribute('data-following') === 'true';
+
+        const endpoint = isFollowing
+            ? `/Connections/Unfollow?followedId=${authorId}`
+            : `/Connections/SendFollowRequest?followedId=${authorId}`;
+
+        try {
+            await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? ''
+                }
+            });
+        } catch (err) {
+            console.error(err);
+        } finally {
+            window.location.reload();
+        }
     });
 </script>
+<script src="/_framework/aspnetcore-browser-refresh.js"></script>

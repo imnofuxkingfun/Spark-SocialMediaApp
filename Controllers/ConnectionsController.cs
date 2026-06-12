@@ -16,13 +16,15 @@ namespace Spark_SocialMediaApp.Controllers
         private readonly IDbContextFactory<ApplicationDbContext> contextFactory;
         private readonly UserManager<User> userManager;
         private readonly RoleManager<IdentityRole> roleManager;
+        private readonly IWebHostEnvironment _env;
 
-        public ConnectionsController(ILogger<ConnectionsController> logger, IDbContextFactory<ApplicationDbContext> contextFactory, UserManager<User> userManager, RoleManager<IdentityRole> roleManager)
+        public ConnectionsController(ILogger<ConnectionsController> logger, IDbContextFactory<ApplicationDbContext> contextFactory, UserManager<User> userManager, RoleManager<IdentityRole> roleManager, IWebHostEnvironment _env)
         {
             this.logger = logger;
             this.contextFactory = contextFactory;
             this.userManager = userManager;
             this.roleManager = roleManager;
+            this._env = _env;
         }
 
         
@@ -39,6 +41,7 @@ namespace Spark_SocialMediaApp.Controllers
         [HttpPost]
         public async Task<IActionResult> SendFollowRequest(string followedId)
         {
+            logger.LogWarning("???????????????????????");
             using var db = contextFactory.CreateDbContext();
             string followerId = userManager.GetUserId(User);
             if (followerId == followedId)
@@ -118,16 +121,31 @@ namespace Spark_SocialMediaApp.Controllers
 
         //follower unfollows followed
         [HttpPost]
+
         public async Task<IActionResult> Unfollow(string followedId)
         {
             using var db = contextFactory.CreateDbContext();
             string followerId = userManager.GetUserId(User);
+            logger.LogWarning("entered !!!!!!!!!!!!!!!!!!!!!!!!unfollow");
             var connection = db.UserConnections.FirstOrDefault(c => c.UserSentId == followerId && c.UserReceivedId == followedId);
             if (connection != null)
             {
+                //delete notification as well
+                ProjectService projectService = new ProjectService(db, _env);
+
+                NotificationType status = connection.Status == ConnectionStatus.Accepted ? NotificationType.Follow : NotificationType.FollowPendingRequest;
+
+                await projectService.DeleteNotification(followerId, followedId, status);
+                logger.LogWarning("deleted notification");
+
+
                 db.UserConnections.Remove(connection);
-                db.SaveChangesAsync();
+                await db.SaveChangesAsync();
+                logger.LogWarning("saved");
+
             }
+            logger.LogWarning("end!!!!!!!!!!!!!!!!");
+
             return RedirectToAction("Show", "Profile", new { id = followedId, feed = "feed" });
         }
 
