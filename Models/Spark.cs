@@ -23,7 +23,7 @@ namespace Spark_SocialMediaApp.Models
             set { text = value; }
         }
 
-        public List<string> Media
+        public List<string>? Media
         {
             get
             {

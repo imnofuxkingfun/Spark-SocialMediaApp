@@ -42,8 +42,13 @@ namespace Spark_SocialMediaApp.Controllers
             return postsViewModel;
         }
 
-        public async Task<IActionResult> Index(string feed = "following") // = following + your tags
+        public async Task<IActionResult> Index(string? feed ) // = following + your tags
         {
+            if (string.IsNullOrEmpty(feed))
+            {
+                return RedirectToAction("Index", "Home", new { feed = "following" });
+            }
+
             ViewBag.CurrentFeed = feed.ToLower();
 
             using var db = contextFactory.CreateDbContext();
@@ -75,6 +80,7 @@ namespace Spark_SocialMediaApp.Controllers
                 var posts = db.Posts
                     .Where(p => userFollowingAccepted.Contains(p.AuthorId))
                     .Include(c => c.Comments)
+                    .Include(t => t.Tags)
                     .Include(a => a.Author).ThenInclude(a => a.Profile)
                     .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
                     .OrderByDescending(p => p.CreatedAt)
@@ -114,6 +120,7 @@ namespace Spark_SocialMediaApp.Controllers
                 .ThenByDescending(x => x.Post.CreatedAt)
                 .Select(x => x.Post)
                 .Include(c => c.Comments)
+                .Include(t => t.Tags)
                 .Include(a => a.Author).ThenInclude(a => a.Profile)
                 .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
                 .ToList();
@@ -134,7 +141,7 @@ namespace Spark_SocialMediaApp.Controllers
         }
 
 
-        public async Task<IActionResult> Explore(string feed = "foryou") //for you + trending 
+        public async Task<IActionResult> Explore(string? feed = "foryou") //for you + trending 
         {
             ViewBag.CurrentFeed = feed.ToLower();
 
@@ -195,6 +202,7 @@ namespace Spark_SocialMediaApp.Controllers
                     .ThenByDescending(x => x.Post.CreatedAt)
                     .Select(x => x.Post)
                     .Include(c => c.Comments)
+                    .Include(t => t.Tags)
                     .Include(a => a.Author).ThenInclude(a => a.Profile)
                     .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
                     .ToList();
@@ -228,6 +236,7 @@ namespace Spark_SocialMediaApp.Controllers
                     .ThenByDescending(x => x.Post.CreatedAt)
                     .Select(x => x.Post)
                     .Include(c => c.Comments)
+                    .Include(t => t.Tags)
                     .Include(a => a.Author).ThenInclude(a => a.Profile)
                     .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
                     .ToList();

@@ -1,4 +1,4 @@
-@model UserProfile
+﻿@model UserProfile
 @{
     ViewData["Title"] = "Profile";
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -42,11 +42,14 @@
         <span class="profile-display-name">@Model.User?.DisplayName</span>
         <span class="profile-username">@@@Model.User?.UserName?.ToLower()
             @if (ViewBag.userIsPrivate == true)
-            {<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" style="margin-left:5px">
-                <path stroke="var(--spark-text-muted)" 
-                      stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 14v2m-4-6V8a4 4 0 1 1 8 0v2m-9 9h10a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1" />
-            </svg>}
-            </span>
+            {
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" style="margin-left:5px">
+                    <path stroke="var(--spark-text-muted)"
+                          stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 14v2m-4-6V8a4 4 0 1 1 8 0v2m-9 9h10a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1" />
+                </svg>
+            }
+        </span>
+
     </div>
     <div class="profile-identity-actions">
         @if (isOwner)
@@ -74,9 +77,16 @@
                     <button type="submit" class="spark-follow-btn">Follow</button>
                 </form>
             }
+            else if (ViewBag.Pending)
+            {
+                <span class="profile-following-badge">Pending</span>
+            }
             else
             {
-                <span class="profile-following-badge">Following</span>
+                <form asp-action="SendFollowRequest" asp-controller="Connections"
+                      class="follow-button" data-author-id="@Model.UserId">
+                    <button type="submit" class="spark-follow-btn">Unfollow</button>
+                </form>
             }
         }
     </div>
@@ -87,13 +97,13 @@
     <!-- reloading page based on chosen feed -->
     <button type="button"
             class="spark-top-bar-btn @(currentFeed == "feed" ? "active" : "")"
-            onclick="window.location.href='@Url.Action("Index", "Profile", new { feed = "feed" })'">
+            onclick="window.location.href='@Url.Action("Show", "Profile", new {id = Model.UserId, feed = "feed" })'">
         Feed
     </button>
 
     <button type="button"
             class="spark-top-bar-btn @(currentFeed == "highlighted" ? "active" : "")"
-            onclick="window.location.href='@Url.Action("Index", "Profile", new { feed = "highlighted" })'">
+            onclick="window.location.href='@Url.Action("Show", "Profile", new { id = Model.UserId, feed = "highlighted" })'">
         Highlighted
     </button>
 </div>

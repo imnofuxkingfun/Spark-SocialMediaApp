@@ -1,0 +1,183 @@
+﻿@model UserProfile
+@{
+    ViewData["Title"] = "Edit Profile";
+}
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="profile-validation-alert" role="alert">
+        @Html.ValidationSummary(false)
+        <button type="button" onclick="this.parentElement.style.display='none'" class="profile-alert-close">✕</button>
+    </div>
+}
+
+<!-- ── Banner + Avatar hero ─────────────────────────────── -->
+<div class="profile-hero">
+
+    <!-- Banner -->
+    <div class="profile-banner">
+        @if (!string.IsNullOrEmpty(Model.BannerPicture))
+        {
+            <img src="@Model.BannerPicture" class="profile-banner-img" alt="Banner" />
+        }
+        else if (!string.IsNullOrEmpty(Model.BannerColor))
+        {
+            <div class="profile-banner-color" style="background-color: @Model.BannerColor;"></div>
+        }
+        else
+        {
+            <div class="profile-banner-color profile-banner-default"></div>
+        }
+        <!-- subtle gradient overlay so avatar reads well -->
+        <div class="profile-banner-fade"></div>
+    </div>
+
+    <!-- Avatar pinned to bottom-center of banner -->
+    <div class="profile-avatar-wrap">
+        <img src="@(Model.ProfilePicture ?? "/defaults/default_icon.png")"
+             alt="Profile picture"
+             class="profile-avatar-img" />
+    </div>
+</div>
+
+<!-- ── Identity block ───────────────────────────────────── -->
+<div class="profile-identity">
+    <span class="profile-display-name">@Model.User?.DisplayName</span>
+    <span class="profile-username">@@@Model.User?.UserName?.ToLower()</span>
+</div>
+
+<!-- ── "Feed" divider ───────────────────────────────────── -->
+<div class="profile-section-rule">
+    <span class="profile-section-label">Edit Profile</span>
+</div>
+
+<!-- ── Edit form  ───────────────────────────────────────── -->
+<div class="profile-feed-area">
+    <div class="spark-card-container profile-form-card">
+        <form method="post" action="@Url.Action("UpdateProfile", "Profile")" enctype="multipart/form-data" class="profile-form">
+
+            <!-- Username -->
+            <div class="profile-field">
+                <label class="profile-label" for="userName">Username</label>
+                <input type="text" class="spark-comment-input" id="userName" name="userName"
+                       placeholder="@Model.User?.UserName" maxlength="20" />
+            </div>
+
+            <!-- Display Name -->
+            <div class="profile-field">
+                <label class="profile-label" for="displayName">Display Name</label>
+                <input type="text" class="spark-comment-input" id="displayName" name="displayName"
+                       placeholder="@Model.User?.DisplayName" maxlength="20" />
+            </div>
+
+            <!-- Profile Picture -->
+            <div class="profile-field">
+                <label class="profile-label">Profile Picture</label>
+                <label for="profilePicture" class="profile-file-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                    Choose image…
+                </label>
+                <input type="file" id="profilePicture" name="profilePicture" accept="image/*"
+                       class="profile-file-input" onchange="previewFile(this, 'pfp-preview')" />
+                <img id="pfp-preview" class="profile-file-preview" style="display:none;" alt="Preview" />
+                @if (Model.ProfilePicture != ViewBag.DefaultProfilePicture && !string.IsNullOrEmpty(Model.ProfilePicture))
+                {
+                    <button type="submit" class="spark-delete-btn"
+                            formaction="@Url.Action("DeleteProfilePicture", "Profile")">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14H6L5 6" />
+                            <path d="M10 11v6" />
+                            <path d="M14 11v6" />
+                            <path d="M9 6V4h6v2" />
+                        </svg>
+                        Remove picture
+                    </button>
+                }
+            </div>
+
+            <!-- Banner Picture -->
+            <div class="profile-field">
+                <label class="profile-label">Banner Image</label>
+                <label for="bannerPicture" class="profile-file-label">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                    </svg>
+                    Choose banner…
+                </label>
+                <input type="file" id="bannerPicture" name="bannerPicture" accept="image/*"
+                       class="profile-file-input" onchange="previewFile(this, 'banner-preview')" />
+                <img id="banner-preview" class="profile-file-preview" style="display:none;" alt="Preview" />
+                @if (Model.BannerPicture != null)
+                {
+                    <button type="submit" class="spark-delete-btn"
+                            formaction="@Url.Action("DeleteBannerPicture", "Profile")">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6l-1 14H6L5 6" />
+                            <path d="M10 11v6" />
+                            <path d="M14 11v6" />
+                            <path d="M9 6V4h6v2" />
+                        </svg>
+                        Remove banner
+                    </button>
+                }
+            </div>
+
+            <!-- Banner Color -->
+            <div class="profile-field">
+                <label class="profile-label" for="bannerColor">Banner Color <span class="profile-muted">(used when no image is set)</span></label>
+                <div class="profile-color-row">
+                    <input type="color" id="bannerColor" name="bannerColor"
+                           class="profile-color-swatch"
+                           value="@(string.IsNullOrEmpty(Model.BannerColor) ? "#623696" : Model.BannerColor)"
+                           oninput="document.getElementById('colorHex').textContent = this.value" />
+                    <span id="colorHex" class="profile-color-hex">
+                        @(string.IsNullOrEmpty(Model.BannerColor) ? "#623696" : Model.BannerColor)
+                    </span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="profile-form-actions">
+                <button type="submit" class="spark-follow-btn" style="font-size:20px; padding: 6px 32px;">
+                    Save Changes
+                </button>
+                <a href="@Url.Action("Index", "Profile", new { feed = "following" })" class="spark-back-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12" />
+                        <polyline points="12 19 5 12 12 5" />
+                    </svg>
+                    Back to Profile
+                </a>
+            </div>
+
+        </form>
+    </div>
+
+</div>
+
+<style>
+
+    
+</style>
+
+<script>
+    function previewFile(input, previewId) {
+        const preview = document.getElementById(previewId);
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+</script>

@@ -43,12 +43,12 @@ namespace Spark_SocialMediaApp.Controllers
             string followerId = userManager.GetUserId(User);
             if (followerId == followedId)
             {
-                return Redirect("/Home/Index");
+                return RedirectToAction("Index", "Home", new { feed = "following" });
             }
             var existingConnection = db.UserConnections.FirstOrDefault(c => c.UserSentId == followerId && c.UserReceivedId == followedId && c.Status == ConnectionStatus.Accepted);
             if (existingConnection != null)
             {
-                return Redirect("/Home/Index");
+                return RedirectToAction("Index", "Home", new { feed = "following" });
             }
 
             //if followed user is private, create pending connection, else create accepted connection
@@ -128,7 +128,7 @@ namespace Spark_SocialMediaApp.Controllers
                 db.UserConnections.Remove(connection);
                 db.SaveChangesAsync();
             }
-            return Json(new { success = true });
+            return RedirectToAction("Show", "Profile", new { id = followedId, feed = "feed" });
         }
 
         //block user
@@ -139,14 +139,14 @@ namespace Spark_SocialMediaApp.Controllers
             string blockerId = userManager.GetUserId(User);
             if (blockerId == blockedId)
             {
-                return Redirect("/Home/Index");
+                return RedirectToAction("Index", "Home", new { feed = "following" });
             }
             var existingConnection = db.UserConnections.FirstOrDefault(c => c.UserSentId == blockerId && c.UserReceivedId == blockedId);
             if (existingConnection != null)
             {
                 existingConnection.Status = ConnectionStatus.Blocked;
                 db.SaveChangesAsync();
-                return Redirect("/Home/Index");
+                return RedirectToAction("Index", "Home", new { feed = "following" });
             }
             UserConnections connection = new UserConnections
             {
@@ -161,7 +161,7 @@ namespace Spark_SocialMediaApp.Controllers
                 db.SaveChangesAsync();
 
             }
-                return Redirect("/Home/Index");
+                return RedirectToAction("Index", "Home", new { feed = "following" });
         }
     }
 }

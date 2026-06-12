@@ -77,28 +77,28 @@ namespace Spark_SocialMediaApp.Models
 
 
 
-                if (context.Users.Find("767d6184-d4d3-42c6-ac30-5c4978e54a71") == null)
+                if (context.Users.Find("767d6184-d4d3-42c6-ac30-5c4978e54a74") == null)
                 {
                     context.Users.Add(new User
                     {
 
-                        Id = "767d6184-d4d3-42c6-ac30-5c4978e54a71",
+                        Id = "767d6184-d4d3-42c6-ac30-5c4978e54a74",
                         // primary key
-                        UserName = "SparkUser",
-                        DisplayName = "SparkUser",
+                        UserName = "DeletedUser",
+                        DisplayName = "Deleted",
                         EmailConfirmed = true,
-                        NormalizedEmail = "USER@TEST.COM",
-                        Email = "user@test.com",
-                        NormalizedUserName = "SPARKUSER",
-                        PasswordHash = hasher.HashPassword(null, "User1!")
+                        NormalizedEmail = "DELETED@TEST.COM",
+                        Email = "deleted@item.com",
+                        NormalizedUserName = "DELETED",
+                        PasswordHash = hasher.HashPassword(null, "#deleted")
                     });
 
                     UserProfile profile = new UserProfile();
-                    profile.UserId = "767d6184-d4d3-42c6-ac30-5c4978e54a71";
+                    profile.UserId = "767d6184-d4d3-42c6-ac30-5c4978e54a74";
                     context.UserProfiles.AddAsync(profile);
 
                     UserSettings settings = new UserSettings();
-                    settings.UserId = "767d6184-d4d3-42c6-ac30-5c4978e54a71";
+                    settings.UserId = "767d6184-d4d3-42c6-ac30-5c4978e54a74";
                     context.UserSettings.AddAsync(settings);
 
                     context.UserRoles.Add(new IdentityUserRole<string>
@@ -108,7 +108,7 @@ namespace Spark_SocialMediaApp.Models
                         RoleId = "ffcf1203-b9be-4725-9dfa-6dd6eae634f4",
 
 
-                        UserId = "767d6184-d4d3-42c6-ac30-5c4978e54a71"
+                        UserId = "767d6184-d4d3-42c6-ac30-5c4978e54a74"
                     });
                 }
 

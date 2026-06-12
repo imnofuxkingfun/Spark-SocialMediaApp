@@ -1,5 +1,5 @@
 ﻿@{
-    var post = Model.PostViewModel.Post;
+    Post post = Model.PostViewModel.Post;
 }
 <div class="spark-card-container">
     <!-- post preview -->
@@ -9,7 +9,7 @@
         <img class="spark-avatar" src="@(post.Author?.Profile?.ProfilePicture ?? "/defaults/default_icon.png")"
              alt="Profile Picture @post.Author?.UserName" 
              style="cursor: pointer;"
-             onclick="window.location.href='@Url.Action("Show", "Profile", new { id = post.AuthorId })'" />
+             onclick="window.location.href='@Url.Action("Show", "Profile", new { id = post.AuthorId, feed="feed" })'" />
 
         <div class="spark-content">
             <!-- username display name, follow button -->
@@ -53,37 +53,16 @@
                         </div>
 
                     }
-
-                    <!-- reblog / respark -->
-                    @if (spark.ParentPost != null)
-                    {
-                        <div class="spark-reblog">
-                            <img class="spark-reblog-avatar" src="@(spark.ParentPost.Author?.Profile?.ProfilePicture ?? "https://placehold.co")" alt="Original Avatar" />
-                            <div class="spark-reblog-content">
-                                <div class="spark-reblog-header">
-                                    <span class="spark-reblog-name">@spark.ParentPost.Author?.UserName</span>
-                                    <span class="spark-reblog-username">@@@spark.ParentPost.Author?.UserName?.ToLower()</span>
-                                </div>
-                                <p class="spark-reblog-text">
-                                    @if (spark.ParentPost is Spark parentSpark)
-                                    {
-                                        @parentSpark.Text
-                                    }
-                                    else if (spark.ParentPost is Blog parentBlog)
-                                    {
-
-                                        @parentBlog.Title
-                                    }
-                                </p>
-                            </div>
-                        </div>
-                    }
                 }
                 else if (post is Blog blog)
                 {
                     <!-- blog preview -->
-
+                    var mediaUrl = blog.Media?.FirstOrDefault() ?? null;
                     <div class="spark-blog-gradient">
+                        @if(!string.IsNullOrEmpty(mediaUrl))
+                        {
+                            <img class="spark-blog-image-background" src="@mediaUrl" alt="Blog Image">
+                        }
                         <div class="spark-blog-body">
                             <h2 class="spark-blog-title">@blog.Title</h2>
                             <p class="spark-blog-excerpt">
@@ -94,13 +73,27 @@
                             <a href="@Url.Action("Show", "Post", new { id = blog.Id })" class="spark-blog-open-link">Open Blog</a>
                         </div>
                     </div>
+
+                }
+                <div class="spark-hashtags">
+                    <!-- tags -->
+                    @if (post.Tags != null && post.Tags.Count > 0)
+                    {
+                    
+                            @foreach(PostTags tag in post.Tags)
+                            {
+                                <span>#@tag.TagId </span>
+                            }
+                    
+                    }
+                </div>
+
+                <!--parent post-->
+                @if (post.ParentPost != null)
+                {
+                    <partial name="ParentPostPreview" model="post.ParentPost" />
                 }
 
-                @* <!-- tags -->
-                                    @if (post.Hashtags != null)
-                                    {
-                                        <div class="spark-hashtags">@post.Hashtags</div>
-                                    } *@
 
             </div>
         </div>

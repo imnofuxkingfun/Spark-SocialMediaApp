@@ -32,9 +32,10 @@
 
             <!-- Spark Form -->
             <div id="sparkForm" class="spark-content" style="display: none;">
-                <div class="spark-blog-gradient">
+                <div class="spark-form-gradient">
                     <h3 class="spark-blog-title mb-4">Create a Spark</h3>
                     <form method="post" action="@Url.Action("CreateSpark", "Post")" enctype="multipart/form-data">
+                                <input type="hidden" name="parentPostId" value="@ViewBag.ParentPost?.Id" />
                         <div class="mb-4">
                             <label for="sparkText" class="spark-text d-block mb-2">What's on your mind?</label>
                             <textarea class="form-control spark-input" id="sparkText" name="text" maxlength="500" rows="4"></textarea>
@@ -64,10 +65,13 @@
                         </div>
 
                         <h5 class="spark-text mb-3" style="color: rgba(121,121,121,0.8);">Content Warnings</h5>
-                        @if (ViewBag.ContentFilters != null)
+                        @{
+                                    var filters = ViewBag.ContentFilters as Dictionary<string, bool>;
+                        }
+                        @if (filters != null)
                         {
                             <div class="row mb-4">
-                                @foreach (var filter in ViewBag.ContentFilters)
+                                @foreach (var filter in filters)
                                 {
                                     <div class="col-md-4 mb-2">
                                         <div class="form-check">
@@ -83,7 +87,7 @@
 
                         <div class="d-flex gap-3 mt-4">
                             <button type="submit" class="spark-follow-btn text-white" style="background: rgba(165,90,252,0.34);">Post Spark</button>
-                            <a href="@Url.Action("Index", "Home")" class="spark-action-btn spark-action-count text-decoration-none">Cancel</a>
+                                    <a href="@Url.Action("Index", "Home", new { feed = "following" })" class="spark-action-btn spark-action-count text-decoration-none">Cancel</a>
                         </div>
                     </form>
                 </div>
@@ -91,9 +95,10 @@
 
             <!-- Blog Form -->
             <div id="blogForm" class="spark-content" style="display: none;">
-                <div class="spark-blog-gradient">
+                <div class="spark-form-gradient">
                     <h3 class="spark-blog-title mb-4">Create a Blog</h3>
                     <form method="post" action="@Url.Action("CreateBlog", "Post")" enctype="multipart/form-data">
+                                <input type="hidden" name="parentPostId" value="@ViewBag.ParentPost?.Id" />
                         <div class="mb-4">
                             <label for="blogTitle" class="spark-text d-block mb-2">Title</label>
                                     <input type="text" class="form-control spark-input" style="font-size: 24px; color: white;" id="blogTitle" name="title" maxlength="100" required>
@@ -148,15 +153,18 @@
 
                         <div class="d-flex gap-3 mt-4">
                             <button type="submit" class="spark-follow-btn text-white" style="background: rgba(165,90,252,0.34);">Post Blog</button>
-                            <a href="@Url.Action("Index", "Home")" class="spark-action-btn spark-action-count text-decoration-none">Cancel</a>
+                                    <a href="@Url.Action("Index", "Home", new { feed = "following" })" class="spark-action-btn spark-action-count text-decoration-none">Cancel</a>
                         </div>
                     </form>
                 </div>
             </div>
 
-
                     <!--parent post if it exists-->
-                    @* <partial name="PostPreviewPartial" model="@ViewBag.ParentPost" /> *@
+                    @if (ViewBag.ParentPost != null)
+                    {
+                           <partial name="ParentPostPreview" model="ViewBag.ParentPost" />
+                    }
+
 
         </div>
     </div>
@@ -164,6 +172,13 @@
 </div>
 </div>
 <style>
+    .spark-form-gradient {
+        background: linear-gradient(to top,rgba(var(--spark-accent-rgb), 0.4) 0%, rgba(var(--spark-accent-rgb), 0) 100%);
+        border-radius: 5px;
+        padding: 15px;
+        display: block;
+    }
+
     .spark-input {
     background: rgba(255, 255, 255, 0.03) !important;
     border: 1px solid rgba(165, 90, 252, 0.3) !important;

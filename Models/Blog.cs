@@ -15,7 +15,7 @@ namespace Spark_SocialMediaApp.Models
         //private string? backgroundImage;
 
         [MaxLength(12)]
-        private List<string?> media; //max 12 poze
+        private List<string>? media; //max 12 poze
 
         //set get
 
@@ -46,11 +46,11 @@ namespace Spark_SocialMediaApp.Models
         //    set { backgroundImage = value; }
         //}
 
-        public List<string?> Media
+        public List<string>? Media
         {
             get
             {
-                return media;
+                return media ?? new List<string>();
             }
             set { media = value; }
         }

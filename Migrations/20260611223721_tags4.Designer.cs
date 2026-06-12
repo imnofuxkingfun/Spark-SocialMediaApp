@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Spark_SocialMediaApp.Data;
 
@@ -11,9 +12,11 @@ using Spark_SocialMediaApp.Data;
 namespace Spark_SocialMediaApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260611223721_tags4")]
+    partial class tags4
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -577,6 +580,7 @@ namespace Spark_SocialMediaApp.Migrations
                     b.HasBaseType("Spark_SocialMediaApp.Models.Post");
 
                     b.PrimitiveCollection<string>("Media")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Text")
@@ -594,6 +598,7 @@ namespace Spark_SocialMediaApp.Migrations
                     b.HasBaseType("Spark_SocialMediaApp.Models.Post");
 
                     b.PrimitiveCollection<string>("Media")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Text")
@@ -791,13 +796,13 @@ namespace Spark_SocialMediaApp.Migrations
                     b.HasOne("Spark_SocialMediaApp.Models.Post", "Post")
                         .WithMany("Tags")
                         .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("Spark_SocialMediaApp.Models.Tag", "Tag")
                         .WithMany("Posts")
                         .HasForeignKey("TagId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Post");
@@ -870,13 +875,13 @@ namespace Spark_SocialMediaApp.Migrations
                     b.HasOne("Spark_SocialMediaApp.Models.Tag", "Tag")
                         .WithMany("Users")
                         .HasForeignKey("TagId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("Spark_SocialMediaApp.Models.User", "User")
                         .WithMany("Tags")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("Tag");

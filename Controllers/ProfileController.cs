@@ -2,11 +2,12 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Spark_SocialMediaApp.Data;
 using Spark_SocialMediaApp.Models;
+using Spark_SocialMediaApp.Services;
 using System.Net;
 using System.Text.RegularExpressions;
-using Microsoft.EntityFrameworkCore;
 
 namespace Spark_SocialMediaApp.Controllers
 {
@@ -31,10 +32,30 @@ namespace Spark_SocialMediaApp.Controllers
 
             
         }
+        private async Task<List<PostViewModel>> CreatePostViewModelList(ApplicationDbContext db, List<Post> posts, string userId)
+        {
+            List<PostViewModel> postsViewModel = new List<PostViewModel>();
+
+            foreach (Post post in posts)
+            {
+                ProjectService projectService = new ProjectService(db, _env);
+                PostViewModel postViewModel = await projectService.CreatePostViewModel(post, userId);
+                postsViewModel.Add(postViewModel);
+            }
+
+            return postsViewModel;
+        }
 
         [HttpGet]
-        public IActionResult Index()
+        public async Task<IActionResult> Index(string? feed)
         {
+            if (string.IsNullOrEmpty(feed))
+            {
+                return RedirectToAction("Index", "Profile", new { feed = "feed" });
+            }
+
+            ViewBag.feed = feed.ToLower();
+
             using var db = contextFactory.CreateDbContext();
             var userProfile = db.UserProfiles
                 .Include(up => up.User)
@@ -53,6 +74,121 @@ namespace Spark_SocialMediaApp.Controllers
                 userProfile = newUserProfile;
             }
             ViewBag.DefaultProfilePicture = defaultProfilePicture;
+
+            var userFollowing = db.UserConnections
+               .Where(u => u.UserSentId == userManager.GetUserId(User))
+               .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)
+               .Select(c => c.UserReceivedId).ToList();
+
+            userFollowing.Add(userManager.GetUserId(User));
+
+            ViewBag.Following = userFollowing;
+
+            ViewBag.userIsPrivate = db.UserSettings.Any(u => u.UserId == userManager.GetUserId(User) && u.PrivacyPublic == false);
+
+            //feed
+            var feedPosts = db.Posts.Where(p => p.AuthorId == userManager.GetUserId(User))
+                .Include(c => c.Comments)
+                .Include(t => t.Tags)
+                .Include(a => a.Author).ThenInclude(a => a.Profile)
+                .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToList();
+
+            ViewBag.userPosts = await CreatePostViewModelList(db, feedPosts, userManager.GetUserId(User));
+
+            //highlighted
+            var highlightedPosts = feedPosts.Where(p => p.IsHighlighted == true)
+                .ToList();
+
+            ViewBag.highlighted = await CreatePostViewModelList(db, highlightedPosts, userManager.GetUserId(User));
+
+            return View(userProfile);
+        }
+
+        [HttpGet]
+        public IActionResult Edit()
+        {
+            using var db = contextFactory.CreateDbContext();
+            var userProfile = db.UserProfiles
+                .Include(up => up.User)
+                .FirstOrDefault(up => up.UserId == userManager.GetUserId(User));
+            if (userProfile == null)
+            {
+                return NotFound();
+            }
+            return View(userProfile);
+        }
+
+        public async Task<IActionResult> Show(string id, string? feed = "feed")
+        {
+            using var db = contextFactory.CreateDbContext();
+            var userProfile = db.UserProfiles
+                .Include(up => up.User)
+                .FirstOrDefault(up => up.UserId == id);
+            if (userProfile == null)
+            {
+                return NotFound();
+            }
+
+            if (string.IsNullOrEmpty(feed))
+            {
+                return RedirectToAction("Index", "Profile", new { feed = "feed" });
+            }
+
+            ViewBag.feed = feed.ToLower();
+
+            string defaultProfilePicture = "/defaults/default_icon.png";
+            if (userProfile == null)
+            {
+                UserProfile newUserProfile = new UserProfile
+                {
+                    UserId = userManager.GetUserId(User),
+                    BannerColor = "B4B4B4",
+                    ProfilePicture = defaultProfilePicture
+                };
+                db.UserProfiles.Add(newUserProfile);
+                db.SaveChanges();
+                userProfile = newUserProfile;
+            }
+            ViewBag.DefaultProfilePicture = defaultProfilePicture;
+
+            var userFollowing = db.UserConnections
+               .Where(u => u.UserSentId == userManager.GetUserId(User))
+               .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)
+               .Select(c => c.UserReceivedId).ToList();
+
+            userFollowing.Add(userManager.GetUserId(User));
+
+            ViewBag.Following = userFollowing;
+
+            bool isConnectionPending = db.UserConnections.Any(uc => uc.UserSentId == userManager.GetUserId(User) && uc.UserReceivedId == id
+                                && (uc.Status == ConnectionStatus.Pending));
+            ViewBag.Pending = isConnectionPending;
+
+            bool isCurrentUserFollowing = db.UserConnections.Any(uc => uc.UserSentId == userManager.GetUserId(User) && uc.UserReceivedId == id 
+                                && (uc.Status == ConnectionStatus.Accepted ));
+
+            ViewBag.userIsPrivate = db.UserSettings.Any(u => u.UserId == userManager.GetUserId(User) && u.PrivacyPublic == false);
+
+            //feed
+            var feedPosts = db.Posts.Where(p => p.AuthorId == id)
+                .Where(p => p.Privacy == PrivacySettings.Public || (p.Privacy  == PrivacySettings.Private && isCurrentUserFollowing == true))//public or follower
+                .Include(c => c.Comments)
+                .Include(t => t.Tags)
+                .Include(a => a.Author).ThenInclude(a => a.Profile)
+                .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToList();
+
+            ViewBag.userPosts = await CreatePostViewModelList(db, feedPosts, userManager.GetUserId(User));
+
+            //highlighted
+            var highlightedPosts = feedPosts.Where(p => p.IsHighlighted == true)
+                .ToList();
+
+            ViewBag.highlighted = await CreatePostViewModelList(db, highlightedPosts, userManager.GetUserId(User));
+
             return View(userProfile);
         }
 

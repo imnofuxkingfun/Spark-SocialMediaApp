@@ -3,10 +3,11 @@
     var userFollowing = ViewBag.Following as List<string> ?? new List<string>();
 
     var currentFeed = ViewBag.CurrentFeed as string ?? "following";
-    var postsToDisplay = currentFeed == "yourTags"
+    var postsToDisplay = currentFeed == "yourtags"
         ? (ViewBag.yourTagsPosts as List<PostViewModel> ?? new List<PostViewModel>())
         : (ViewBag.yourFollowingPosts as List<PostViewModel> ?? new List<PostViewModel>());
 }
+
 <!--top bar-->
 <div class="spark-top-bar glass-effect" role="group">
     <!-- reloading page based on chosen feed -->
@@ -17,8 +18,8 @@
     </button>
 
     <button type="button"
-            class="spark-top-bar-btn @(currentFeed == "yourTags" ? "active" : "")"
-            onclick="window.location.href='@Url.Action("Index", "Home", new { feed = "yourTags" })'">
+            class="spark-top-bar-btn @(currentFeed == "yourtags" ? "active" : "")"
+            onclick="window.location.href='@Url.Action("Index", "Home", new { feed = "yourtags" })'">
         Your Tags
     </button>
 

@@ -182,6 +182,7 @@ namespace Spark_SocialMediaApp.Data
                 .OnDelete(DeleteBehavior.NoAction); //dont delete notifications on sender delete
 
 
+
             //tags
             modelBuilder.Entity<PostTags>()
                 .HasKey(pt => new { pt.PostId, pt.TagId });
@@ -190,13 +191,13 @@ namespace Spark_SocialMediaApp.Data
                 .HasOne(pt => pt.Post)
                 .WithMany(p => p.Tags)
                 .HasForeignKey(pt => pt.PostId)
-                .OnDelete(DeleteBehavior.NoAction); 
+                .OnDelete(DeleteBehavior.Cascade); 
 
             modelBuilder.Entity<PostTags>()
                 .HasOne(pt => pt.Tag)
                 .WithMany(t => t.Posts)
                 .HasForeignKey(pt => pt.TagId)
-                .OnDelete(DeleteBehavior.NoAction); 
+                .OnDelete(DeleteBehavior.Cascade); 
 
             modelBuilder.Entity<PostTags>(entity =>
             {
@@ -211,13 +212,13 @@ namespace Spark_SocialMediaApp.Data
                 .HasOne(ut => ut.User)
                 .WithMany(ut => ut.Tags)
                 .HasForeignKey(ut => ut.UserId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<UserTags>()
                 .HasOne(ut => ut.Tag)
                 .WithMany(ut => ut.Users)
-                .HasForeignKey(ut => ut.UserId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .HasForeignKey(ut => ut.TagId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<UserTags>(entity =>
             {

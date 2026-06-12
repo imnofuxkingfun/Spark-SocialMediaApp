@@ -106,7 +106,7 @@
             <nav class="spark-nav">
                
                 <a class="spark-nav-link @(currentPage == "HomeIndex" ? "active" : "")"
-                   asp-area="" asp-controller="Home" asp-action="Index">
+                   asp-area="" asp-controller="Home" asp-action="Index" asp-route-feed="following">
                     <svg viewBox="0 0 44 47" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <path id="nav-icon" d="M21.7188 0.5C22.459 0.5 23.1794 0.722981 23.7881 1.13574L24.042 1.32422L41.5732 15.5723L41.7295 15.7061C42.084 16.0281 42.3726 16.417 42.5791 16.8506C42.815 17.3461 42.9376 17.8878 42.9375 18.4365V42.4199C42.9374 43.3978 42.5489 44.3359 41.8574 45.0273C41.1659 45.7188 40.2279 46.1074 39.25 46.1074H4.1875C3.20957 46.1074 2.27161 45.7188 1.58008 45.0273C0.888599 44.3359 0.500068 43.3978 0.5 42.4199V18.4365L0.505859 18.2314C0.532771 17.7536 0.652842 17.2847 0.859375 16.8516C1.09538 16.3567 1.43851 15.9206 1.86426 15.5752L19.3955 1.32422L19.6494 1.13574C20.2581 0.722981 20.9785 0.5 21.7188 0.5ZM4.6875 18.6709V41.9199H38.75V18.6748L21.7178 4.8291L4.6875 18.6709Z"
                               fill="#A55AFC" />
@@ -159,7 +159,7 @@
                 </a>
 
                 <a class="spark-nav-link @(currentPage == "ProfileIndex" ? "active" : "")"
-                asp-area="" asp-controller="Profile" asp-action="Index">
+                   asp-area="" asp-controller="Profile" asp-action="Index" asp-route-feed="feed">
                     <svg viewBox="0 0 42 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <path id="nav-icon2" d="M1.33333 37.6249V40.4166C1.33333 41.8974 1.92157 43.3175 2.96865 44.3646C4.01573 45.4117 5.43587 45.9999 6.91666 45.9999H34.8333C36.3141 45.9999 37.7343 45.4117 38.7813 44.3646C39.8284 43.3175 40.4167 41.8974 40.4167 40.4166V37.6249C40.4167 34.6633 39.2402 31.823 37.146 29.7289C35.0519 27.6347 32.2116 26.4583 29.25 26.4583H12.5C9.53841 26.4583 6.69812 27.6347 4.60397 29.7289C2.50981 31.823 1.33333 34.6633 1.33333 37.6249ZM29.25 9.70825C29.25 11.9294 28.3676 14.0597 26.797 15.6303C25.2264 17.2009 23.0962 18.0833 20.875 18.0833C18.6538 18.0833 16.5236 17.2009 14.953 15.6303C13.3824 14.0597 12.5 11.9294 12.5 9.70825C12.5 7.48706 13.3824 5.35685 14.953 3.78623C16.5236 2.21562 18.6538 1.33325 20.875 1.33325C23.0962 1.33325 25.2264 2.21562 26.797 3.78623C28.3676 5.35685 29.25 7.48706 29.25 9.70825Z"
                               stroke="#A55AFC" stroke-width="3" />
@@ -209,14 +209,14 @@
         <!--discovery + search -->
         <!--search !!!-->
         <aside class="spark-discovery" aria-label="Discovery">
-            <section class="spark-discovery-section">
+            @* <section class="spark-discovery-section">
                 <h2 class="spark-discovery-title">Trending</h2>
-                @* @await Html.PartialAsync("_DiscoveryTrending") *@
+                @await Html.PartialAsync("_DiscoveryTrending")
             </section>
             <section class="spark-discovery-section">
                 <h2 class="spark-discovery-title">Who to follow</h2>
-                @* @await Html.PartialAsync("_DiscoverySuggested") *@
-            </section>
+                @await Html.PartialAsync("_DiscoverySuggested")
+            </section> *@
         </aside>
 
     </div>

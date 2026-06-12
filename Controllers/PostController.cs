@@ -41,12 +41,19 @@ namespace Spark_SocialMediaApp.Controllers
 
             Post? post = db.Posts
                 .Include(c => c.Comments)
+                .Include(t => t.Tags)
                 .Include(a => a.Author).ThenInclude(a => a.Profile)
                 .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
                 .FirstOrDefault(p => p.Id == id);
 
-            var author = db.Users.Include(u => u.FollowedBy).FirstOrDefault(u => u.Id == post.AuthorId);
-            User user = db.Users.Find(userManager.GetUserId(User));
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+
+            var author = await db.Users.Include(u => u.FollowedBy).FirstOrDefaultAsync(u => u.Id == post.AuthorId);
+            User? user = db.Users.Find(userManager.GetUserId(User));
 
             var userFollowing = db.UserConnections
                .Where(u => u.UserSentId == userManager.GetUserId(User))
@@ -119,17 +126,19 @@ namespace Spark_SocialMediaApp.Controllers
             {
                 return View("ShowBlog", post);
             }
-            return Redirect("/Home/Index");
+            return RedirectToAction("Index", "Home", new { feed = "following" });
         }
 
         [Authorize]
-        public async Task<IActionResult> CreatePost(string? parentPostId = null)
+        public async Task<IActionResult> CreatePost(string? postParentId = null)
         {
             using var db = contextFactory.CreateDbContext();
 
-            if (!string.IsNullOrEmpty(parentPostId))
+            if (!string.IsNullOrEmpty(postParentId))
             {
-                var parentPost = await db.Posts.FindAsync(parentPostId);
+                var parentPost = await db.Posts
+                    .Include(p => p.Author).ThenInclude(a => a.Profile)
+                    .FirstOrDefaultAsync(p => p.Id == postParentId);
                 ViewBag.ParentPost = parentPost;
             }
             else
@@ -149,10 +158,17 @@ namespace Spark_SocialMediaApp.Controllers
 
         //spark logic
         [Authorize, HttpPost]
-        public async Task<IActionResult> CreateSpark(string privacy, string? text, List<IFormFile>? media, string? tags)
+        public async Task<IActionResult> CreateSpark(string privacy, string? text, List<IFormFile>? media, string? tags, string? parentPostId)
         {
             using var db = contextFactory.CreateDbContext();
-            if (text == null && (media == null || media.Count == 0))
+
+            Post? parentPost = null;
+            if (!string.IsNullOrEmpty(parentPostId))
+            {
+                parentPost = await db.Posts.FindAsync(parentPostId);
+            }
+
+                if (text == null && (media == null || media.Count == 0))
             {
                 ModelState.AddModelError("SparkError", "Spark must contain at least either text or images");
                 return RedirectToAction("CreatePost");
@@ -163,7 +179,8 @@ namespace Spark_SocialMediaApp.Controllers
                 Text = text,
                 Media = new List<string>(),
                 AuthorId = userManager.GetUserId(User),
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                ParentPost = parentPost
             };
 
             // Handle media uploads to storage
@@ -301,7 +318,7 @@ namespace Spark_SocialMediaApp.Controllers
                     }
                 }
             }
-            return Redirect("/Home/Index");
+            return RedirectToAction("Index", "Home", new {feed = "following"});
         }
 
         [Authorize, HttpPost]
@@ -311,7 +328,7 @@ namespace Spark_SocialMediaApp.Controllers
             var spark = (Spark)db.Posts.Find(id);
             if (DateTime.UtcNow - spark.CreatedAt > TimeSpan.FromMinutes(15)) //15 min window for editing 
             {
-                return Redirect("/Home/Index");
+                return RedirectToAction("Index", "Home", new { feed = "following" });
             }
             if (spark != null && spark.AuthorId == userManager.GetUserId(User))
             {
@@ -333,7 +350,7 @@ namespace Spark_SocialMediaApp.Controllers
 
         //blog logic
         [Authorize, HttpPost]
-        public async Task<IActionResult> CreateBlog(string? privacy, string title, string? text,  List<IFormFile>? images, string? tags)
+        public async Task<IActionResult> CreateBlog(string? privacy, string title, string? text,  List<IFormFile>? images, string? tags, string? parentPostId)
         {
             using var db = contextFactory.CreateDbContext();
             if (text == null && (images == null || images.Count == 0))
@@ -467,7 +484,7 @@ namespace Spark_SocialMediaApp.Controllers
                     }
                 }
             }
-            return Redirect("/Home/Index");
+            return RedirectToAction("Index", "Home", new { feed = "following" });
         }
 
         [Authorize, HttpPost]
@@ -477,7 +494,7 @@ namespace Spark_SocialMediaApp.Controllers
             var blog = (Blog)db.Posts.Find(id);
             if (DateTime.UtcNow - blog.CreatedAt > TimeSpan.FromMinutes(15)) //15 min window for editing 
             {
-                return Redirect("Home/Index");
+                return RedirectToAction("Index", "Home", new { feed = "following" });
             }
             if (blog != null && (blog.AuthorId == userManager.GetUserId(User) || User.IsInRole("Admin")))
             {
@@ -522,13 +539,18 @@ namespace Spark_SocialMediaApp.Controllers
 
                 
                 
-                projectService.HandleImageDeleting(post.GetType() == typeof(Spark) ? ((Spark)post).Media : ((Blog)post).Media);
+                await projectService.HandleImageDeleting(post.GetType() == typeof(Spark) ? ((Spark)post).Media : ((Blog)post).Media);
+
+                //delete all associated notifications
+                var notifications = db.Notifications.Where(n => n.Post == post).ToList();
+                db.Notifications.RemoveRange(notifications);
 
                 //deleting comments and respective images
                 var comments = db.Comments.Where(c => c.PostId == id).ToList();
                 foreach (var comment in comments)
                 {
-                    projectService.HandleImageDeleting(new List<string> { comment.Media });
+
+                    await projectService.HandleImageDeleting(new List<string> { comment.Media });
                     db.Comments.Remove(comment);
                 }
 
@@ -559,12 +581,25 @@ namespace Spark_SocialMediaApp.Controllers
                     }
                 }
 
+                //change child posts' parent post to notfound
+                var childPosts = db.Posts.Where(p => p.ParentPost != null && p.ParentPost.Id == id).ToList();
+                foreach (var child in childPosts)
+                {
+                    {
+                        child.ParentPost = new Spark
+                        {
+                            AuthorId = "767d6184-d4d3-42c6-ac30-5c4978e54a74", //deleted    
+                            Text = "This post has been deleted"
+                        };
+                        db.Posts.Update(child);
+                    }
+                }
 
                 db.Posts.Remove(post);
                 await db.SaveChangesAsync();
             }
 
-            return Redirect("/Home/Index");
+            return RedirectToAction("Index", "Home", new { feed = "following" });
         }
 
 
@@ -699,6 +734,7 @@ namespace Spark_SocialMediaApp.Controllers
             var savedPosts = db.Posts.Include(p => p.SavedByUsers)
                 .Where(p => p.SavedByUsers.Any(s => s.UserId == userId))
                 .Include(c => c.Comments)
+                .Include(t => t.Tags)
                 .Include(a => a.Author).ThenInclude(a => a.Profile)
                 .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
                 .OrderByDescending(c => c.CreatedAt)
@@ -723,14 +759,25 @@ namespace Spark_SocialMediaApp.Controllers
         public async Task<IActionResult> Repost(string postId)
         {
             using var db = contextFactory.CreateDbContext();
-            var post = await db.Posts.Include(p => p.SavedByUsers).FirstOrDefaultAsync(p => p.Id == postId);
+            var post = await db.Posts
+               .Include(p => p.ParentPost)
+               .FirstOrDefaultAsync(p => p.Id == postId);
+
             if (post == null)
             {
                 return NotFound();
             }
+            //we check if this post is JUST a repost (no media or text)
+            //and if yes, parent is actually the post's parent
+            Post newParentPost = null;
+            if (post is Spark spark && string.IsNullOrEmpty(spark.Text) && spark.Media.Count == 0 && spark.ParentPost != null)
+            {
+                post = spark.ParentPost;
+            }
 
             var userId = userManager.GetUserId(User);
-            var existingRepost= db.Posts.FirstOrDefault(l => l.AuthorId == userId && l.ParentPost == post);
+            var existingRepost= await db.Posts.FirstOrDefaultAsync(l => l.AuthorId == userId && l.ParentPost.Id == post.Id);
+
             ProjectService projectService = new ProjectService(db, _env);
             if (existingRepost == null)
             {

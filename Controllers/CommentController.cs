@@ -68,7 +68,7 @@ namespace Spark_SocialMediaApp.Controllers
                 ProjectService projectService = new ProjectService(db, HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>());
                 await projectService.CreateNotification(comment.AuthorId, db.Posts.Find(postId).AuthorId, NotificationType.Comment, db.Posts.Find(postId), comment);
             }
-            return Redirect("/Post/Show/" + postId);
+            return RedirectToAction("Show", "Post", new {id = postId});
         }
 
         [HttpPost]

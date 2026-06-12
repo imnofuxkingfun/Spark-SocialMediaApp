@@ -1,0 +1,52 @@
+﻿@model Post;
+@{
+    Post parentPost = Model;
+    string parentMediaUrl = null;
+    string parentText = null;
+    string parentTitle = null;
+    var isDeletedUser = parentPost.Author?.UserName?.ToLower() == "deleteduser";
+
+}
+
+@if (parentPost is Spark parentSpark)
+{
+    parentMediaUrl = parentSpark.Media?.FirstOrDefault();
+    parentText = parentSpark?.Text;
+}
+else if (parentPost is Blog parentBlog)
+{
+    parentMediaUrl = parentBlog.Media?.FirstOrDefault();
+    parentText = parentBlog?.Text;
+    parentTitle = parentBlog?.Title;
+}
+
+<div class="spark-reblog" style="cursor: @(isDeletedUser ? "default" : "pointer");"
+    @(isDeletedUser ? "" : Html.Raw($"onclick=\"window.location.href='{Url.Action("Show", "Post", new { id = parentPost.Id })}'\""))>
+    <!-- Profile Picture -->
+    <img class="spark-reblog-avatar" src="@(parentPost.Author?.Profile?.ProfilePicture ?? "/defaults/default_icon.png")" alt="Profile Picture @parentPost.Author?.UserName" />
+
+    <div class="spark-reblog-content">
+        <!-- Header Info -->
+        <div class="spark-reblog-header">
+            <span class="spark-reblog-name">@parentPost.Author?.DisplayName</span>
+            <span class="spark-reblog-username">@@@parentPost.Author?.UserName?.ToLower()</span>
+        </div>
+
+        <p class="spark-reblog-text" style="font-weight:bold">
+            @(parentTitle?.Length > 120 ? parentTitle.Substring(0, 120) + "..." : parentTitle)
+        </p> 
+
+        <!-- Text Content -->
+        <p class="spark-reblog-text">
+            @(parentText?.Length > 120 ? parentText.Substring(0, 120) + "..." : parentText)
+        </p>
+
+        <!-- First Image -->
+        @if (!string.IsNullOrEmpty(parentMediaUrl))
+        {
+            <div class="spark-images-container" style="margin-top: 8px; max-width: 200px;">
+                <img src="@parentMediaUrl" class="grid-image-1" alt="Parent post media" style="border-radius: 8px; max-height: 150px; object-fit: cover; width: 100%;" />
+            </div>
+        }
+    </div>
+</div>
