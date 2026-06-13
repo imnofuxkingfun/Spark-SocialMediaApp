@@ -2,9 +2,26 @@
     Post post = Model.PostViewModel.Post;
 }
 <div class="spark-card-container">
+    <!--check if post is JUST repost //and if yes, parent is actually the post's parent-->
+    @if (post is Spark sparkRepost && string.IsNullOrEmpty(sparkRepost.Text) && sparkRepost.Media?.Count == 0 && post.ParentPost != null)
+    {
+        <!--if so we only show the repost sign + username-->
+
+        <span class="spark-just-repost">
+            <svg class="repost-icon" width="30" height="29" viewBox="0 0 37 36" fill="var(--spark-text-muted)">
+                <path d="M36.2427 7.46136L28.6957 14.9227L27.2033 13.4262L32.1707 8.51522H6.39576V16.9461H4.26384V6.40749H32.1707L27.2033 1.49649L28.6957 0L36.2427 7.46136ZM29.8469 27.4848V19.0539H31.9788V29.5925H4.07197L9.03934 34.5035L7.547 36L0 28.5386L7.547 21.0773L9.03934 22.5738L4.07197 27.4848H29.8469Z" />
+            </svg>
+            <span class="spark-post-username">   @@@post.Author?.UserName?.ToLower()   reposted</span>
+        </span>
+
+        post = post.ParentPost;
+    }
+
     <!-- post preview -->
     <div class="spark-card @(post is Blog ? "spark-blog-preview-card" : "")">
 
+       
+     
         <!-- author + pfp -->
         <img class="spark-avatar" src="@(post.Author?.Profile?.ProfilePicture ?? "/defaults/default_icon.png")"
              alt="Profile Picture @post.Author?.UserName" 

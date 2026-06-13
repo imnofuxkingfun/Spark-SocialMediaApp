@@ -691,6 +691,11 @@ html, body {
 }
 
 /* post content*/
+.spark-just-repost{
+    margin: 2rem;
+    margin-bottom: -3rem;
+}
+
 .spark-content {
     flex-grow: 1;
     display: flex;
