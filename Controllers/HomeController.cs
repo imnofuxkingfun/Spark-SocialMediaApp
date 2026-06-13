@@ -171,20 +171,23 @@ namespace Spark_SocialMediaApp.Controllers
             //for you
             // posts that have at least one tag that the user has + popularity (number of comments + number of likes) + recency
             // + posts from following's following
-            if (feed.ToLower() == "foryou")
-            {
-                var tagIds = db.UserTags
-                .Where(ut => ut.UserId == user.Id)
+
+            var tagIds = db.UserTags
+                .Where(ut => ut.UserId == user.Id && ut.Tag != null)
                 .Select(ut => ut.TagId)
                 .ToList();
 
-                var followingNetwork = db.UserConnections
-                    .Where(u => userFollowing.Contains(u.UserSentId))
-                    .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)
-                    .Select(c => c.UserReceivedId).ToList();
+
+            var followingNetwork = db.UserConnections
+                .Where(u => userFollowing.Contains(u.UserSentId))
+                .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)
+                .Select(c => c.UserReceivedId).ToList();
+
+            if (feed.ToLower() == "foryou" && !(tagIds != null && tagIds.Count > 0 && followingNetwork != null && followingNetwork.Count > 0))
+            { 
 
                 var tagAndNetworkPosts = db.Posts
-                    .Where(p => p.Tags.Any(pt => tagIds.Contains(pt.TagId)) || followingNetwork.Contains(p.AuthorId))
+                    .Where(p => p.Tags != null && p.Tags.Any(pt => pt.TagId != null && tagIds.Any(utn => pt.TagId.Contains(utn)))) //allow for partial tag matches
                     .Where(p => p.Privacy == PrivacySettings.Public || (p.Privacy == PrivacySettings.Private && userFollowingAccepted.Contains(p.AuthorId)))
                     .Where(p => p.AuthorId != user.Id); //only public or followers
 

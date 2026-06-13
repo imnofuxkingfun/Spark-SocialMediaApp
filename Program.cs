@@ -84,6 +84,40 @@ app.MapControllerRoute(
 app.MapRazorPages()
    .WithStaticAssets();
 
+
+//full text search db table for tags
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var db = services.GetRequiredService<ApplicationDbContext>(); 
+
+    db.Database.Migrate();
+
+    var ftsScript = @"
+        IF NOT EXISTS (SELECT 1 FROM sys.fulltext_catalogs WHERE name = 'TagCatalog')
+        BEGIN
+            CREATE FULLTEXT CATALOG TagCatalog AS DEFAULT;
+        END
+
+        IF NOT EXISTS (SELECT 1 FROM sys.fulltext_indexes WHERE object_id = OBJECT_ID('dbo.Tags'))
+        BEGIN
+            CREATE FULLTEXT INDEX ON dbo.Tags(Id)
+            KEY INDEX PK_Tags
+            WITH STOPLIST = SYSTEM;
+        END
+    ";
+
+    try
+    {
+        db.Database.ExecuteSqlRaw(ftsScript);
+    }
+    catch (Exception ex)
+    {
+        System.Diagnostics.Debug.WriteLine($"Error on FTS creation: {ex.Message}");
+    }
+}
+
+
 app.Run();
 
 public class DictionaryModelBinderProvider : IModelBinderProvider
