@@ -193,7 +193,7 @@ namespace Spark_SocialMediaApp.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> UpdateProfile(string userName, string displayName, IFormFile profilePicture, IFormFile bannerPicture, string bannerColor)
+        public async Task<IActionResult> UpdateProfile(string userName, string displayName, IFormFile profilePicture, IFormFile bannerPicture, string bannerColor, string accentColor)
         {
             using var db = contextFactory.CreateDbContext();
             //username
@@ -317,9 +317,13 @@ namespace Spark_SocialMediaApp.Controllers
             // Handle banner color
             if (!string.IsNullOrEmpty(bannerColor))
             {
-                logger.LogInformation("bannerColor");
-
                 userProfile.BannerColor = bannerColor;
+            }
+
+            //accent color
+            if (!string.IsNullOrEmpty(accentColor))
+            {
+                userProfile.AccentColor = accentColor;
             }
 
 
@@ -329,7 +333,7 @@ namespace Spark_SocialMediaApp.Controllers
                
             }
             await db.SaveChangesAsync();
-            return RedirectToAction("Index");
+            return RedirectToAction("Index", new { feed = "following" });
         }
 
         [HttpPost]

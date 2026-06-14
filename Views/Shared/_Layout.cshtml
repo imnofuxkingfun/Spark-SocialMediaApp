@@ -1,5 +1,8 @@
-﻿@using Microsoft.AspNetCore.Identity
+﻿@using System.Drawing
+@using Microsoft.AspNetCore.Identity
 @inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+@inject Spark_SocialMediaApp.Services.IProjectService ProjectService
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,6 +20,23 @@
     <link href="https://fonts.googleapis.com/css2?family=New+Rocker&family=Trocchi&display=swap" rel="stylesheet">
 
     @RenderSection("Styles", false)
+
+    @{
+            var accentColor = ProjectService.GetAccentColor(UserManager.GetUserId(User));
+            var accentRgb = ColorTranslator.FromHtml(accentColor);
+            var r = accentRgb.R.ToString();
+            var g = accentRgb.G.ToString();
+            var a = accentRgb.B.ToString();
+
+            var accentRgbString = r + ", " + g + ", " + a + ";";
+        }
+
+    <style>
+        :root{
+        --spark-accent: @accentColor;
+        --spark-accent-rgb: @accentRgbString;
+        }
+    </style>
 </head>
 <body>
     <div popover="manual" id="shareLink">Saved Link</div>

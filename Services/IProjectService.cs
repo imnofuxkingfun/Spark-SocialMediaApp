@@ -16,6 +16,8 @@ namespace Spark_SocialMediaApp.Services
 
         Task CreateNotification(string senderId, string receiverId, NotificationType type, Post? post = null, Comment? comment = null);
         Task DeleteNotification(string senderId, string receiverId, NotificationType type, Post? post = null, Comment? comment = null);
+
+        string GetAccentColor(string userId);
     }
 
     public class ProjectService : IProjectService
@@ -226,6 +228,16 @@ namespace Spark_SocialMediaApp.Services
                 db.Notifications.Update(notification);
                 await db.SaveChangesAsync();
             }
+        }
+
+        public string GetAccentColor(string userId)
+        {
+            var user = db.Users.Where(u => u.Id == userId).Include(p => p.Profile).FirstOrDefault();
+            if (user != null)
+            {
+                return user.Profile.AccentColor ?? "#A55AFC";
+            }
+            return "#A55AFC";
         }
     }
 

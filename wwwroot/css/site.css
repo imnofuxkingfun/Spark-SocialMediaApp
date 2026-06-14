@@ -729,8 +729,8 @@ html, body {
 }
 
 .spark-follow-btn {
-    background: radial-gradient(circle, rgba(98,53,150,0) 31%, rgba(165,90,252,0.03) 68%, rgba(165,90,252,0.34) 100%);
-    border: 1px #A55AFC solid;
+    background: radial-gradient(circle, rgba(var(--spark-accent-rgb),0) 31%, rgba(var(--spark-accent-rgb),0.03) 68%, rgba(var(--spark-accent-rgb),0.34) 100%);
+    border: 1px var(--spark-accent) solid;
     border-radius: 78px;
     color: rgba(121, 121, 121, 0.80);
     font-size: 24px;
@@ -857,7 +857,7 @@ html, body {
     width: 100%;
     background: rgba(255, 255, 255, 0.01);
     border-radius: 4px;
-    outline: 1px #A55AFC solid;
+    outline: 1px var(--spark-accent) solid;
     padding: 16px;
     display: flex;
     gap: 16px;
@@ -1538,7 +1538,7 @@ html, body {
     aspect-ratio: 1;
     border-radius: 6px;
     object-fit: cover;
-    border: 3px solid var(--spark-accent-border);
+    border: 3px solid var(--spark-accent);
     display: block;
 }
 

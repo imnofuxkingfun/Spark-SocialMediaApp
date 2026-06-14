@@ -14,6 +14,7 @@ namespace Spark_SocialMediaApp.Models
         private string? bannerPicture;
 
         private string? bannerColor;
+        private string? accentColor = "#A55AFC";
 
         public string? ProfilePicture
         {
@@ -42,6 +43,14 @@ namespace Spark_SocialMediaApp.Models
             set { bannerColor = value; }
         }
 
+        public string? AccentColor
+        {
+            get
+            {
+                return accentColor;
+            }
+            set { accentColor = value; }
+        }
         public virtual User? User { get; set; }
 
         //constructor

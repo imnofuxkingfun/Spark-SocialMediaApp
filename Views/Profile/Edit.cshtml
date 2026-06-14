@@ -144,6 +144,22 @@
                 </div>
             </div>
 
+            <!-- Accent Color -->
+            <div class="profile-field">
+                <label class="profile-label" for="accentColor">Accent Color <span class="profile-muted"></span></label>
+                <div class="profile-color-row">
+                    <input type="color" id="accentColor" name="accentColor"
+                           class="profile-color-swatch"
+                           value="@(string.IsNullOrEmpty(Model.AccentColor) ? "#A55AFC" : Model.AccentColor)" />
+                    <span id="accentColorHex" class="profile-color-hex">
+                        @(string.IsNullOrEmpty(Model.AccentColor) ? "#A55AFC" : Model.AccentColor)
+                    </span>
+                    <button type="button" id="resetColorBtn" class="spark-follow-btn">
+                        Reset
+                    </button>
+                </div>
+            </div>
+
             <!-- Actions -->
             <div class="profile-form-actions">
                 <button type="submit" class="spark-follow-btn" style="font-size:20px; padding: 6px 32px;">
@@ -180,4 +196,17 @@
             reader.readAsDataURL(input.files[0]);
         }
     }
+
+     document.getElementById('resetColorBtn').addEventListener('click', function() {
+        const defaultColor = '#A55AFC';
+
+        document.getElementById('accentColor').value = defaultColor;
+
+        document.getElementById('colorHex').innerText = defaultColor;
+        document.getElementById('accentColor').dispatchEvent(new Event('input'));
+    });
+
+    document.getElementById('accentColor').addEventListener('input', function(e) {
+        document.getElementById('accentColorHex').innerText = e.target.value.toUpperCase();
+    });
 </script>
