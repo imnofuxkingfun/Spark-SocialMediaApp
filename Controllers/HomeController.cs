@@ -108,13 +108,13 @@ namespace Spark_SocialMediaApp.Controllers
                 .ToList();
 
             var tagPosts = db.Posts
-                .Where(p => p.Tags.Any(pt => tags.Contains(pt.TagId)))
+                .Where(p => p.Tags != null && p.Tags.Any(pt => tags.Contains(pt.TagId)))
                 .Where(p => p.Privacy == PrivacySettings.Public || (p.Privacy == PrivacySettings.Private && userFollowingAccepted.Contains(p.AuthorId))) 
                 .Where(p => p.AuthorId != user.Id)//only public or followers
                 .Select(p => new
                 {
                     Post = p,
-                    MatchCount = p.Tags.Count(pt => tags.Contains(pt.TagId))
+                    MatchCount = p.Tags != null ?  p.Tags.Count(pt => tags.Contains(pt.TagId)) : 0
                 })
                 .OrderByDescending(x => x.MatchCount)
                 .ThenByDescending(x => x.Post.CreatedAt)
@@ -195,11 +195,11 @@ namespace Spark_SocialMediaApp.Controllers
             { 
 
                 var tagAndNetworkPosts = db.Posts
-                    .Where(p => p.Tags != null && p.Tags.Any(pt => pt.TagId != null && tagIds.Any(utn => pt.TagId.Contains(utn)))) //allow for partial tag matches
+                    .Where(p => p.Tags != null && p.Tags.Any(pt => pt.TagId != null && tagIds != null && tagIds.Any(utn => pt.TagId.Contains(utn)))) //allow for partial tag matches
                     .Where(p => p.AuthorId != user.Id); //only public or followers
 
                 var tagNetworkSimilarUsers = db.Posts
-                    .Where(p => usersWithSimilarTags.Contains(p.AuthorId))
+                    .Where(p => usersWithSimilarTags != null && usersWithSimilarTags.Contains(p.AuthorId))
                     .Where(p => p.Privacy == PrivacySettings.Public || (p.Privacy == PrivacySettings.Private && userFollowingAccepted.Contains(p.AuthorId)))
                     .Where(p => p.AuthorId != user.Id); //only public or followers
 
@@ -208,9 +208,10 @@ namespace Spark_SocialMediaApp.Controllers
                     .Select(p => new
                     {
                         Post = p,
-                        Score = (p.Comments.Count + p.LikedByUsers.Count) * 5 +
-                        (p.Tags.Count(pt => tagIds.Contains(pt.TagId))) * 4 +
-                        (followingNetwork.Contains(p.AuthorId) ? 1 : 0) * 2 -
+                        Score = (p.Comments != null ? p.Comments.Count : 0 + 
+                                    (p.LikedByUsers != null ? p.LikedByUsers.Count : 0)) * 5 +
+                        ((p.Tags != null && tagIds != null) ? p.Tags.Count(pt => tagIds.Contains(pt.TagId)) : 0) * 4 +
+                        (followingNetwork != null ? (followingNetwork.Contains(p.AuthorId) ? 1 : 0) : 0) * 2 -
                         (EF.Functions.DateDiffDay(p.CreatedAt, DateTime.UtcNow)) * 3 //popularity weighted most, then tag match, then network, then recency
                     })
                     .OrderByDescending(x => x.Score)
@@ -244,7 +245,8 @@ namespace Spark_SocialMediaApp.Controllers
                     .Select(p => new
                     {
                         Post = p,
-                        Score = (p.Comments.Count + p.LikedByUsers.Count) * 5 -
+                        Score = (p.Comments != null ? p.Comments.Count : 0 +
+                                    (p.LikedByUsers != null ? p.LikedByUsers.Count : 0)) * 5 -
                         (EF.Functions.DateDiffDay(p.CreatedAt, DateTime.UtcNow)) * 3 //popularity weighted most, then recency
                     })
                     .OrderByDescending(x => x.Score)
