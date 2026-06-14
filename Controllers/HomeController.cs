@@ -245,9 +245,8 @@ namespace Spark_SocialMediaApp.Controllers
                     .Select(p => new
                     {
                         Post = p,
-                        Score = (p.Comments != null ? p.Comments.Count : 0 +
-                                    (p.LikedByUsers != null ? p.LikedByUsers.Count : 0)) * 5 -
-                        (EF.Functions.DateDiffDay(p.CreatedAt, DateTime.UtcNow)) * 3 //popularity weighted most, then recency
+                        Score = (p.Comments.Count() + p.LikedByUsers.Count()) * 5 -
+                 (          EF.Functions.DateDiffDay(p.CreatedAt, p.CreatedAt) * 3) //popularity weighted most, then recency
                     })
                     .OrderByDescending(x => x.Score)
                     .ThenByDescending(x => x.Post.CreatedAt)
