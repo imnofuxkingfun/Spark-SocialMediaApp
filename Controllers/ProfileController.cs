@@ -214,15 +214,15 @@ namespace Spark_SocialMediaApp.Controllers
                 else
                 {
                     user.UserName = userName;
-                    await userManager.UpdateAsync(user);  // USE UserManager instead!
+                    await userManager.UpdateAsync(user); 
                 }
             }
 
-            // Only update display name if provided
+
             if (!string.IsNullOrEmpty(displayName))
             {
                 user.DisplayName = displayName;
-                await userManager.UpdateAsync(user);  // USE UserManager instead!
+                await userManager.UpdateAsync(user); 
             }
 
 

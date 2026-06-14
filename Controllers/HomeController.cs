@@ -177,22 +177,34 @@ namespace Spark_SocialMediaApp.Controllers
                 .Select(ut => ut.TagId)
                 .ToList();
 
+            var usersWithSimilarTags = db.UserTags
+                .Where(ut => ut.TagId != null && tagIds.Contains(ut.TagId))
+                .Select(ut => ut.UserId)
+                .Distinct()
+                .ToList();
+
 
             var followingNetwork = db.UserConnections
                 .Where(u => userFollowing.Contains(u.UserSentId))
                 .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)
                 .Select(c => c.UserReceivedId).ToList();
 
-            if (feed.ToLower() == "foryou" && !(tagIds != null && tagIds.Count > 0 && followingNetwork != null && followingNetwork.Count > 0))
+            if (feed.ToLower() == "foryou" && ((tagIds == null || tagIds.Count == 0 )
+                && (followingNetwork == null || followingNetwork.Count == 0) 
+                && (usersWithSimilarTags == null || usersWithSimilarTags.Count>0)))
             { 
 
                 var tagAndNetworkPosts = db.Posts
                     .Where(p => p.Tags != null && p.Tags.Any(pt => pt.TagId != null && tagIds.Any(utn => pt.TagId.Contains(utn)))) //allow for partial tag matches
+                    .Where(p => p.AuthorId != user.Id); //only public or followers
+
+                var tagNetworkSimilarUsers = db.Posts
+                    .Where(p => usersWithSimilarTags.Contains(p.AuthorId))
                     .Where(p => p.Privacy == PrivacySettings.Public || (p.Privacy == PrivacySettings.Private && userFollowingAccepted.Contains(p.AuthorId)))
                     .Where(p => p.AuthorId != user.Id); //only public or followers
 
 
-                var forYouPosts = tagAndNetworkPosts
+                var forYouPosts = tagNetworkSimilarUsers
                     .Select(p => new
                     {
                         Post = p,
