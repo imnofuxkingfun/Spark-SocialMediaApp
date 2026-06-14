@@ -333,7 +333,7 @@ namespace Spark_SocialMediaApp.Controllers
                
             }
             await db.SaveChangesAsync();
-            return RedirectToAction("Index", new { feed = "following" });
+            return RedirectToAction("Index", new { feed = "feed" });
         }
 
         [HttpPost]
