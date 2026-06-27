@@ -107,22 +107,28 @@ namespace Spark_SocialMediaApp.Controllers
                 .Select(ut => ut.TagId)
                 .ToList();
 
-            var tagPosts = db.Posts
-                .Where(p => p.Tags != null && p.Tags.Any(pt => tags.Contains(pt.TagId)))
-                .Where(p => p.Privacy == PrivacySettings.Public || (p.Privacy == PrivacySettings.Private && userFollowingAccepted.Contains(p.AuthorId))) 
+
+            var postsEnumerable = db.Posts
+                    .Include(c => c.Comments)
+                .Include(t => t.Tags)
+                .Include(a => a.Author).ThenInclude(a => a.Profile)
+                .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
+                .AsEnumerable();
+
+                var tagPosts = postsEnumerable
+
+                .Where(p => p.Tags != null && p.Tags.Any(pt => tags.ToList().Contains(pt.TagId)))
+                .Where(p => p.Privacy == PrivacySettings.Public || (p.Privacy == PrivacySettings.Private && userFollowingAccepted.ToList().Contains(p.AuthorId))) 
                 .Where(p => p.AuthorId != user.Id)//only public or followers
                 .Select(p => new
                 {
                     Post = p,
-                    MatchCount = p.Tags != null ?  p.Tags.Count(pt => tags.Contains(pt.TagId)) : 0
+                    MatchCount = p.Tags != null ?  p.Tags.Count(pt => tags.ToList().Contains(pt.TagId)) : 0
                 })
                 .OrderByDescending(x => x.MatchCount)
                 .ThenByDescending(x => x.Post.CreatedAt)
                 .Select(x => x.Post)
-                .Include(c => c.Comments)
-                .Include(t => t.Tags)
-                .Include(a => a.Author).ThenInclude(a => a.Profile)
-                .Include(p => p.ParentPost).ThenInclude(pa => pa.Author).ThenInclude(a => a.Profile)
+                
                 .ToList();
 
                 var filteredPosts = tagPosts
