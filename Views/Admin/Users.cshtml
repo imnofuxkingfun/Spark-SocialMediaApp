@@ -1,0 +1,56 @@
+﻿@{
+    ViewData["Title"] = "Admin";
+    var users = ViewBag.Users as List<User> ?? new List<User>();
+}
+
+@if (User.IsInRole("Admin"))
+{
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="spark-post-feed">
+
+                <!--empty div to stay under top bar at the start-->
+                <div style="height:8vh"></div>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 24px;">
+                    <h2>User Management</h2>
+
+                </div>
+                <!-- notification feed feed -->
+
+                <div class="spark-posts-feed">
+                    @foreach (User user in users.OrderBy(u => u.JoinedAt))
+                    {
+
+
+                        <!--pfp-->
+                        <div class="spark-card-container notification-card">
+                            <img class="spark-avatar" src="@(user?.Profile?.ProfilePicture ?? "/defaults/default_icon.png")"
+                            alt="Profile Picture @user?.UserName"
+                            style="cursor:pointer;" onclick="window.location.href='@Url.Action("Show", "Profile", new { id = user.Id })'" />
+                            <!--content-->
+                            <div class="spark-content">
+                                <div class="spark-post-header">
+                                    <div class="spark-user-info">
+                                        <span class="spark-post-name">@user?.DisplayName</span>
+                                        <span class="spark-post-username">@@@user?.UserName?.ToLower()</span>
+                                    </div>
+
+                                    <!--Delete-->
+
+                                    <form asp-controller="Home" asp-action="DeleteUser" data-user-id="@user.Id">
+                                        <input type="hidden" value="@user.Id" name="userId" />
+                                        <button id="btnClearAllNotifications" type="submit" class="spark-follow-btn" style="border-color: #ff4a4a; color: #ff4a4a; font-size: 16px; padding: 4px 16px;">Delete User</button>
+                                    </form>
+
+                                </div>
+
+                            </div>
+                        </div>
+                    }
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+}

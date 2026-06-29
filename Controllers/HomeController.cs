@@ -294,5 +294,75 @@ namespace Spark_SocialMediaApp.Controllers
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
+
+        [Authorize(Roles = "Admin")]
+        [HttpGet("Home/Admin/Users")]
+        public IActionResult Users()
+        {
+            var users = userManager.Users.Where(u=> u.UserName.ToLower() != "deleteduser" && u.UserName.ToLower() != "sparkadmin").ToList();
+            ViewBag.Users = users;
+            return View("../Admin/Users");
+
+        }
+
+        [Authorize(Roles ="Admin")]
+        [HttpPost]
+        public async Task<IActionResult> DeleteUser(string userId)
+        {
+            logger.LogWarning("???????????????????????????????");
+            using var db = contextFactory.CreateDbContext();
+
+            User? user = await userManager.FindByIdAsync(userId);
+
+            //delete all user posts -> post deletion handles image and comments
+            var userPosts = db.Posts.Where(p => p.AuthorId == userId).ToList();
+            ProjectService projectService = new ProjectService(db, _env);
+            foreach (Post post in userPosts)
+            {
+               await projectService.DeletePost(post.Id);
+            }
+
+            //delete all user comments
+            var comments = db.Comments.Where(c => c.AuthorId == userId).ToList();
+            foreach (var comment in comments)
+            {
+
+                await projectService.HandleImageDeleting(new List<string> { comment.Media });
+                db.Comments.Remove(comment);
+            }
+
+            //delete all user liked posts
+            db.LikedPosts.RemoveRange(db.LikedPosts.Where(lp => lp.UserId == userId));
+
+            //saved posts
+            db.SavedPosts.RemoveRange(db.SavedPosts.Where(sp => sp.UserId == userId));
+
+            //user connections
+            db.UserConnections.RemoveRange(db.UserConnections.Where(uc => uc.UserSentId == userId || uc.UserReceivedId == userId));
+
+            //settings
+            db.UserSettings.RemoveRange(db.UserSettings.Where(us => us.UserId == userId));
+
+            //profile
+            db.UserProfiles.RemoveRange(db.UserProfiles.Where(up => up.UserId == userId));
+
+            //notifications
+            db.Notifications.RemoveRange(db.Notifications.Where(n => n.SenderId == userId || n.ReceiverId == userId));
+
+            //user tags
+            db.UserTags.RemoveRange(db.UserTags.Where(ut => ut.UserId == userId));
+
+            await db.SaveChangesAsync();
+
+            // delete the user
+            await userManager.DeleteAsync(await userManager.FindByIdAsync(userId));
+
+            await db.Users.Where(u => u.Id == userId).ExecuteDeleteAsync();
+
+            await db.SaveChangesAsync();
+
+
+            return Redirect("/Home/Admin/Users");
+        }
     }
 }

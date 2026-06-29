@@ -23,6 +23,8 @@ namespace Spark_SocialMediaApp.Services
 
         Task<List<User>?> GetDiscoveryUsers (string userId);
         Task<Post?> GetDiscoveryPost(string userId);
+
+        Task DeletePost(string postId);
     }
 
     public class ProjectService : IProjectService
@@ -76,7 +78,7 @@ namespace Spark_SocialMediaApp.Services
         }
 
 
-        public async Task HandleImageDeleting(List<string> media)
+        public async Task HandleImageDeleting(List<string>? media)
         {
             foreach (var mediaPath in media)
             {
@@ -258,7 +260,7 @@ namespace Spark_SocialMediaApp.Services
 
             //salt
             Random rand = new Random();
-            int skipper = rand.Next(0, db.Users.Count() - userFollowing.Count()-2);
+            int skipper = rand.Next(0, Math.Max(0,db.Users.Count() - userFollowing.Count()-2));
 
             var users = await db.Users
                 .Where(u => !userFollowing.Contains(u.Id) && u.UserName != "deleteduser")
@@ -317,5 +319,78 @@ namespace Spark_SocialMediaApp.Services
             return newPost;
         }
 
+        public async Task DeletePost(string id)
+        {
+            var post = await db.Posts
+            .Include(p => p.ParentPost)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (post == null)
+                return;
+
+            ProjectService projectService = new ProjectService(db, _env);
+            //delete images from server
+            await projectService.HandleImageDeleting(post.GetType() == typeof(Spark) ? ((Spark)post).Media : ((Blog)post).Media);
+
+            //delete all associated notifications
+            var notifications = db.Notifications.Where(n => n.Post == post).ToList();
+            db.Notifications.RemoveRange(notifications);
+
+            //deleting comments and respective images
+            var comments = db.Comments.Where(c => c.PostId == id).ToList();
+            foreach (var comment in comments)
+            {
+
+                await projectService.HandleImageDeleting(new List<string> { comment.Media });
+                db.Comments.Remove(comment);
+            }
+
+            //if its a repost delete repost notification
+            if (post.ParentPost != null)
+            {
+                //delete notification
+                await projectService.DeleteNotification(post.AuthorId, post.ParentPost.AuthorId, NotificationType.Repost, post.ParentPost);
+            }
+
+            //remove from user's tags
+            if (post.Tags != null)
+            {
+                foreach (var tag in post.Tags)
+                {
+                    var existingUserTag = db.UserTags.FirstOrDefault(ut => ut.UserId == post.AuthorId && ut.TagId == tag.TagId);
+                    if (existingUserTag != null)
+                    {
+                        existingUserTag.Count--;
+                        if (existingUserTag.Count <= 0)
+                        {
+                            db.UserTags.Remove(existingUserTag);
+                        }
+                        else
+                        {
+                            db.UserTags.Update(existingUserTag);
+                        }
+                    }
+                }
+            }
+
+            //change child posts' parent post to notfound
+            var childPosts = db.Posts.Where(p => p.ParentPost != null && p.ParentPost.Id == id).ToList();
+            foreach (var child in childPosts)
+            {
+                {
+                    child.ParentPost = new Spark
+                    {
+                        AuthorId = "767d6184-d4d3-42c6-ac30-5c4978e54a74", //deleted    
+                        Text = "This post has been deleted"
+                    };
+                    db.Posts.Update(child);
+                }
+            }
+
+            db.Posts.Remove(post);
+            await db.SaveChangesAsync();
+
+
+        }
 }
 }
