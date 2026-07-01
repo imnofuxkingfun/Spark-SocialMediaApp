@@ -3,14 +3,14 @@
 @{
     var hasExternalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).Any();
 }
-<ul class="nav nav-pills flex-column">
+<ul class="nav nav-pills flex-column" >
     @* <li class="nav-item"><a class="nav-link @ManageNavPages.IndexNavClass(ViewContext)" id="profile" asp-page="./Index">Profile</a></li> *@
-    <li class="nav-item"><a class="nav-link @ManageNavPages.SettingsNavClass(ViewContext)" id="settings" asp-page="./Settings">Settings</a></li>
+    <li class="spark-nav-link"><a class=" @ManageNavPages.SettingsNavClass(ViewContext)" style="color:var(--spark-text); font-size:2rem; text-decoration:none;" id="settings" asp-page="./Settings">Settings</a></li>
     @* <li class="nav-item"><a class="nav-link @ManageNavPages.EmailNavClass(ViewContext)" id="email" asp-page="./Email">Email</a></li> *@
-    <li class="nav-item"><a class="nav-link @ManageNavPages.ChangePasswordNavClass(ViewContext)" id="change-password" asp-page="./ChangePassword">Password</a></li>
+    <li class="spark-nav-link"><a class="@ManageNavPages.ChangePasswordNavClass(ViewContext)" style="color:var(--spark-text);  font-size:2rem; text-decoration:none;" id="change-password" asp-page="./ChangePassword">Password</a></li>
     @if (hasExternalLogins)
     {
-        <li id="external-logins" class="nav-item"><a id="external-login" class="nav-link @ManageNavPages.ExternalLoginsNavClass(ViewContext)" asp-page="./ExternalLogins">External logins</a></li>
+        <li id="external-logins" class="spark-nav-link"><a id="external-login" style="color:var(--spark-text);  font-size:1.5rem; text-decoration:none;" class="@ManageNavPages.ExternalLoginsNavClass(ViewContext)" asp-page="./ExternalLogins">External logins</a></li>
     }
     @* <li class="nav-item"><a class="nav-link @ManageNavPages.TwoFactorAuthenticationNavClass(ViewContext)" id="two-factor" asp-page="./TwoFactorAuthentication">Two-factor authentication</a></li> *@
     @* <li class="nav-item"><a class="nav-link @ManageNavPages.PersonalDataNavClass(ViewContext)" id="personal-data" asp-page="./PersonalData">Personal data</a></li> *@

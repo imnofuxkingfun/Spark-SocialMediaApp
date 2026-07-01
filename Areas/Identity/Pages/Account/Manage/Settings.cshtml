@@ -8,12 +8,13 @@
 
 <form id="update-settings-form" method="post">
     <div class="mb-3">
-        <div class="form-check">
-            <input asp-for="Settings.PrivacyPublic" class="form-check-input" id="PrivacyPublic" />
+        <div class="form-check" >
+            <input asp-for="Settings.PrivacyPublic" class="form-check-input spark-checkbox" id="PrivacyPublic" />
             <input type="hidden" asp-for="Settings.UserId" />
-            <label class="form-check-label" for="PrivacyPublic">Public Profile</label>
+            <label class="form-check-label" style="font-size:1.3rem;" for="PrivacyPublic">Public Profile</label>
         </div>
     </div>
+    <br />
 
     <h3>Content Filters</h3>
 
@@ -29,7 +30,7 @@
             <input type="hidden" name="FormFilters[@i].Key" value="@key" />
             
             <input type="checkbox" 
-                   class="form-check-input" 
+                   class="form-check-input spark-checkbox"
                    id="ContentFilters_@key" 
                    name="FormFilters[@i].Value" 
                    value="true" 
@@ -37,11 +38,11 @@
                    
             <input type="hidden" name="FormFilters[@i].Value" value="false" />
 
-            <label class="form-check-label" for="ContentFilters_@key">@key</label>
+                <label class="form-check-label" style="font-size:1.3rem;" for="ContentFilters_@key">@key</label>
         </div>
     </div>
 }
 
 
-    <button type="submit" class="btn btn-primary">Apply</button>
+    <button type="submit" class="spark-follow-btn ">Apply</button>
 </form>
