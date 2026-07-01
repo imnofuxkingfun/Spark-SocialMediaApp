@@ -535,68 +535,7 @@ namespace Spark_SocialMediaApp.Controllers
             if (post != null && (post.AuthorId == userManager.GetUserId(User) || User.IsInRole("Admin")))
             {
 
-                //delete images from server
-
-                
-                
-                await projectService.HandleImageDeleting(post.GetType() == typeof(Spark) ? ((Spark)post).Media : ((Blog)post).Media);
-
-                //delete all associated notifications
-                var notifications = db.Notifications.Where(n => n.Post == post).ToList();
-                db.Notifications.RemoveRange(notifications);
-
-                //deleting comments and respective images
-                var comments = db.Comments.Where(c => c.PostId == id).ToList();
-                foreach (var comment in comments)
-                {
-
-                    await projectService.HandleImageDeleting(new List<string> { comment.Media });
-                    db.Comments.Remove(comment);
-                }
-
-                //if its a repost delete repost notification
-                if(post.ParentPost != null)
-                {
-                    //delete notification
-                    await projectService.DeleteNotification(post.AuthorId, post.ParentPost.AuthorId, NotificationType.Repost, post.ParentPost);
-                }
-
-                //remove from user's tags
-                if(post.Tags != null)
-                {foreach (var tag in post.Tags)
-                    {
-                        var existingUserTag = db.UserTags.FirstOrDefault(ut => ut.UserId == post.AuthorId && ut.TagId == tag.TagId);
-                        if (existingUserTag != null)
-                        {
-                            existingUserTag.Count--;
-                            if (existingUserTag.Count <= 0)
-                            {
-                                db.UserTags.Remove(existingUserTag);
-                            }
-                            else
-                            {
-                                db.UserTags.Update(existingUserTag);
-                            }
-                        }
-                    }
-                }
-
-                //change child posts' parent post to notfound
-                var childPosts = db.Posts.Where(p => p.ParentPost != null && p.ParentPost.Id == id).ToList();
-                foreach (var child in childPosts)
-                {
-                    {
-                        child.ParentPost = new Spark
-                        {
-                            AuthorId = "767d6184-d4d3-42c6-ac30-5c4978e54a74", //deleted    
-                            Text = "This post has been deleted"
-                        };
-                        db.Posts.Update(child);
-                    }
-                }
-
-                db.Posts.Remove(post);
-                await db.SaveChangesAsync();
+                await projectService.DeletePost(post.Id);
             }
 
             return RedirectToAction("Index", "Home", new { feed = "following" });

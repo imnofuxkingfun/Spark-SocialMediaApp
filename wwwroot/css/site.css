@@ -1850,3 +1850,16 @@ html, body {
     letter-spacing: 0.14em;
     white-space: nowrap;
 }
+
+
+.spark-checkbox:checked {
+    background-color:var(--spark-accent)!important; 
+    height:1.4rem; 
+    width:1.4rem;
+}
+
+.spark-checkbox {
+    background-color: var(--spark-text);
+    height: 1.4rem;
+    width: 1.4rem;
+}

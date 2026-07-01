@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Spark_SocialMediaApp.Data;
 using Spark_SocialMediaApp.Models;
-using Microsoft.EntityFrameworkCore;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 
 namespace Spark_SocialMediaApp.Services
@@ -18,6 +20,11 @@ namespace Spark_SocialMediaApp.Services
         Task DeleteNotification(string senderId, string receiverId, NotificationType type, Post? post = null, Comment? comment = null);
 
         string GetAccentColor(string userId);
+
+        Task<List<User>?> GetDiscoveryUsers (string userId);
+        Task<Post?> GetDiscoveryPost(string userId);
+
+        Task DeletePost(string postId);
     }
 
     public class ProjectService : IProjectService
@@ -71,7 +78,7 @@ namespace Spark_SocialMediaApp.Services
         }
 
 
-        public async Task HandleImageDeleting(List<string> media)
+        public async Task HandleImageDeleting(List<string>? media)
         {
             foreach (var mediaPath in media)
             {
@@ -239,6 +246,151 @@ namespace Spark_SocialMediaApp.Services
             }
             return "#A55AFC";
         }
-    }
 
+
+        public async Task<List<User>?> GetDiscoveryUsers(string userId)
+        {
+            //new, public, unfollowed users
+            var userFollowing = db.UserConnections
+                .Where(u => u.UserSentId == userId)
+                .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)
+                .Select(c => c.UserReceivedId).ToList();
+
+            userFollowing.Add(userId);
+
+            //salt
+            Random rand = new Random();
+            int skipper = rand.Next(0, Math.Max(0,db.Users.Count() - userFollowing.Count()-2));
+
+            var users = await db.Users
+                .Where(u => !userFollowing.Contains(u.Id) && u.UserName != "deleteduser")
+                .OrderBy(u => u.Id)
+                .Skip(skipper)
+                .Take(3)
+                .ToListAsync();
+            return users;
+        }
+
+        public async Task<Post?> GetDiscoveryPost(string userId)
+        {
+            var userFollowing = db.UserConnections
+                .Where(u => u.UserSentId == userId)
+                .Where(c => c.Status == ConnectionStatus.Accepted || c.Status == ConnectionStatus.Pending)
+                .Select(c => c.UserReceivedId).ToList();
+
+            userFollowing.Add(userId);
+
+            var userLikedPosts = db.LikedPosts
+                .Where(l => l.UserId == userId)
+                .Select(l => l.Post).ToList();
+            var userSavedPosts = db.SavedPosts
+                .Where(s => s.UserId == userId)
+                .Select(s => s.Post).ToList();
+
+
+
+
+            List<Post> newPosts = await db.Posts
+                .Select(p => new
+                {
+                    Post = p,
+                    MediaCheckSpark = (p.GetType() == typeof(Spark) ? ((Spark)p).Media != null && ((Spark)p).Media.Count > 0 : false),
+                    MediaCheckBlog = (p.GetType() == typeof(Blog) ? ((Blog)p).Media != null && ((Blog)p).Media.Count > 0 : false)
+                }
+                )
+                .Where(p => p.MediaCheckSpark || p.MediaCheckBlog)
+                .Select(p => p.Post)
+                .Where(p => !userFollowing.Contains(p.AuthorId))
+                .Where(p => !userLikedPosts.Contains(p))
+                .Where(p => !userSavedPosts.Contains(p))
+                .Where(p => p.Privacy == PrivacySettings.Public)
+                .Where(p => p.ParentPost == null)
+                .OrderByDescending(p => p.CreatedAt)
+                .Include(p => p.Author).ThenInclude(a => a.Profile)
+                .ToListAsync();
+
+            //salt
+            Random rand = new Random();
+            int skipper = rand.Next(0, newPosts.Count());
+
+
+            var newPost = newPosts.Skip(skipper).FirstOrDefault();
+
+            return newPost;
+        }
+
+        public async Task DeletePost(string id)
+        {
+            var post = await db.Posts
+            .Include(p => p.ParentPost)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (post == null)
+                return;
+
+            ProjectService projectService = new ProjectService(db, _env);
+            //delete images from server
+            await projectService.HandleImageDeleting(post.GetType() == typeof(Spark) ? ((Spark)post).Media : ((Blog)post).Media);
+
+            //delete all associated notifications
+            var notifications = db.Notifications.Where(n => n.Post == post).ToList();
+            db.Notifications.RemoveRange(notifications);
+
+            //deleting comments and respective images
+            var comments = db.Comments.Where(c => c.PostId == id).ToList();
+            foreach (var comment in comments)
+            {
+
+                await projectService.HandleImageDeleting(new List<string> { comment.Media });
+                db.Comments.Remove(comment);
+            }
+
+            //if its a repost delete repost notification
+            if (post.ParentPost != null)
+            {
+                //delete notification
+                await projectService.DeleteNotification(post.AuthorId, post.ParentPost.AuthorId, NotificationType.Repost, post.ParentPost);
+            }
+
+            //remove from user's tags
+            if (post.Tags != null)
+            {
+                foreach (var tag in post.Tags)
+                {
+                    var existingUserTag = db.UserTags.FirstOrDefault(ut => ut.UserId == post.AuthorId && ut.TagId == tag.TagId);
+                    if (existingUserTag != null)
+                    {
+                        existingUserTag.Count--;
+                        if (existingUserTag.Count <= 0)
+                        {
+                            db.UserTags.Remove(existingUserTag);
+                        }
+                        else
+                        {
+                            db.UserTags.Update(existingUserTag);
+                        }
+                    }
+                }
+            }
+
+            //change child posts' parent post to notfound
+            var childPosts = db.Posts.Where(p => p.ParentPost != null && p.ParentPost.Id == id).ToList();
+            foreach (var child in childPosts)
+            {
+                {
+                    child.ParentPost = new Spark
+                    {
+                        AuthorId = "767d6184-d4d3-42c6-ac30-5c4978e54a74", //deleted    
+                        Text = "This post has been deleted"
+                    };
+                    db.Posts.Update(child);
+                }
+            }
+
+            db.Posts.Remove(post);
+            await db.SaveChangesAsync();
+
+
+        }
+}
 }

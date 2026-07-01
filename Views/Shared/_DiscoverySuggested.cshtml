@@ -1,0 +1,123 @@
+﻿@using Microsoft.AspNetCore.Identity
+@inject Spark_SocialMediaApp.Services.IProjectService ProjectService
+@using Spark_SocialMediaApp.Models
+@inject UserManager<User> UserManager
+@{
+    var userId = UserManager.GetUserId(User);
+    var discoveryUsers = await ProjectService.GetDiscoveryUsers(userId) as List<User> ?? new List<User>();
+    var discoveryPost = await ProjectService.GetDiscoveryPost(userId) as Post ?? null;
+
+}
+
+@if (discoveryUsers.Count == 0 && discoveryPost == null)
+{
+    <p class="spark-discovery-empty">No new suggestions at the moment. Check back later!</p>
+}
+else
+{
+    <h2 class="spark-discovery-title">Discover new:</h2>
+}
+
+@foreach (var user in discoveryUsers)
+{
+
+
+    <div class="spark-content">
+        <!-- username display name, follow button -->
+        <div class="spark-post-header" style="justify-content:flex-start; gap: 1rem;">
+
+            <img class="spark-avatar" src="@(user?.Profile?.ProfilePicture ?? "/defaults/default_icon.png")"
+                 alt="Profile Picture @user?.UserName"
+                 style="cursor: pointer; height:7vh; width:auto;"
+                 onclick="window.location.href='@Url.Action("Show", "Profile", new { id = user.Id, feed = "feed" })'" />
+
+            <div class="spark-user-info">
+                <span class="spark-post-name">@user?.DisplayName</span>
+                <span class="spark-post-username">@@@user?.UserName?.ToLower()</span>
+            </div>
+
+        </div>
+      
+
+        
+    </div>
+
+}
+
+@if (discoveryPost != null)
+{
+
+    <!-- post preview -->
+    <div class="spark-card-container @(discoveryPost is Blog ? "spark-blog-preview-card" : "")" style="padding:1rem;">
+
+
+
+        
+
+        <div class="spark-content">
+            <!-- username display name, follow button -->
+            <div class="spark-post-header" style="justify-content:flex-start;gap: 1rem;">
+                <!-- author + pfp -->
+                <img class="spark-avatar" src="@(discoveryPost.Author?.Profile?.ProfilePicture ?? "/defaults/default_icon.png")"
+                     alt="Profile Picture @discoveryPost.Author?.UserName"
+                     style="cursor: pointer; height:7vh; width:auto;"
+                     onclick="window.location.href='@Url.Action("Show", "Profile", new { id = discoveryPost.AuthorId, feed = "feed" })'" />
+                <div class="spark-user-info">
+                    <span class="spark-post-name">@discoveryPost.Author?.DisplayName</span>
+                    <span class="spark-post-username">@@@discoveryPost.Author?.UserName?.ToLower()</span>
+                </div>
+ 
+            </div>
+            <div style="cursor: pointer;"
+                 onclick="window.location.href='@Url.Action("Show", "Post", new { id = discoveryPost.Id })'">
+                <!-- spark -->
+                @if (discoveryPost is Spark spark)
+                {
+                    <!-- text -->
+                    <p class="spark-text">@spark.Text</p>
+
+
+                    <!-- normak spark -->
+                    @if (spark.Media != null && spark.Media.Count > 0 && spark.ParentPost == null)
+                    {
+                        <div class="spark-images-container">
+                            <div class="spark-images grid-@Math.Min(4, spark.Media.Count)">
+                                @{
+                                    var countImages = 0;
+                                }
+                                @foreach (var media in spark.Media.Take(4))
+                                {
+                                    countImages++;
+                                    <img src="@media" class="grid-image-@countImages" alt="Spark media" />
+                                }
+                            </div>
+                        </div>
+
+                    }
+                }
+                else if (discoveryPost is Blog blog)
+                {
+                    <!-- blog preview -->
+                    var mediaUrl = blog.Media?.FirstOrDefault() ?? null;
+                    <div class="spark-blog-gradient">
+                        @if (!string.IsNullOrEmpty(mediaUrl))
+                        {
+                            <img class="spark-blog-image-background" src="@mediaUrl" alt="Blog Image">
+                        }
+                        <div class="spark-blog-body">
+                            <h2 class="spark-blog-title">@blog.Title</h2>
+                            <p class="spark-blog-excerpt">
+                                @(blog.Text?.Length > 200 ? blog.Text.Substring(0, 200) + "..." : blog.Text)
+                            </p>
+                        </div>
+                        <div class="spark-blog-footer">
+                            <a href="@Url.Action("Show", "Post", new { id = blog.Id })" class="spark-blog-open-link">Open Blog</a>
+                        </div>
+                    </div>
+
+                }
+
+            </div>
+        </div>
+    </div>
+}
